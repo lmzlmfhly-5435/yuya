@@ -1,35 +1,96 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yuya</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at top, #2b1055, #000);
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif;
-      text-align: center;
-    }
-    h1 {
-      font-size: 44px;
-      letter-spacing: 2px;
-    }
-    p {
-      font-size: 20px;
-      opacity: 0.85;
-    }
-  </style>
-</head>
-<body>
-  <div>
-    <h1>王誉雅</h1>
-    <p>这是一个只属于你的地方。</p>
-  </div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="一片会随着相爱天数生长的星空，每一天都是一颗可以摘下的星。"
+    />
+    <title>第 661 颗星</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23090f1f'/%3E%3Cpath d='M32 8l5.5 17.8L56 32l-18.5 6.2L32 56l-5.5-17.8L8 32l18.5-6.2L32 8z' fill='%23f6d67b'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" id="app">
+      <section class="intro" id="intro" aria-label="开场">
+        <img
+          class="intro__image"
+          src="assets/meadow-girl-real-sky.png"
+          alt="夜晚草坪上，一个女孩坐着向干净的夜空伸手"
+        />
+        <div class="intro__shade" aria-hidden="true"></div>
+        <div class="intro__copy">
+          <p class="intro__eyebrow">A sky only for you</p>
+          <h1>第 <span data-day-count>661</span> 颗星</h1>
+          <p>
+            我把我们在一起的每一天，都藏进了一颗星星里。你伸手的那一颗，
+            就是我那天想对你说的话。
+          </p>
+          <button class="intro__button" id="enterButton" type="button">
+            <span aria-hidden="true">✦</span>
+            进入我们的星空
+          </button>
+        </div>
+      </section>
+
+      <section class="sky" aria-label="我们的星空">
+        <img
+          class="sky__scene"
+          id="sceneImage"
+          src="assets/meadow-girl-real-sky.png"
+          alt="女孩坐在夜晚草坪上，向真实悬挂的星空伸出手"
+        />
+        <div class="sky__film" aria-hidden="true"></div>
+        <div class="sky__weather" aria-hidden="true"></div>
+
+        <header class="topbar" aria-label="星空状态">
+          <a class="brand" href="#app" aria-label="回到开场">
+            <span aria-hidden="true">✦</span>
+            <strong>第 <span data-day-count>661</span> 颗星</strong>
+          </a>
+          <div class="day-counter" aria-live="polite">
+            我们已经在一起
+            <strong data-day-count>661</strong>
+            天
+          </div>
+          <div class="sky-actions" aria-label="选择星星">
+            <button id="todayButton" type="button" aria-label="摘今天的星星">
+              今日
+            </button>
+            <button id="randomButton" type="button" aria-label="随机摘一颗星星">
+              随机
+            </button>
+            <label class="date-jump" aria-label="按日期寻找星星">
+              <span>日期</span>
+              <input id="dateInput" type="date" />
+            </label>
+          </div>
+        </header>
+
+        <div class="star-layer" id="starLayer" aria-label="可以摘下的星星"></div>
+        <div class="traveler-layer" id="travelerLayer" aria-hidden="true"></div>
+        <div class="hand-glow" id="handGlow" aria-hidden="true"></div>
+
+        <article class="projection" id="projection" aria-live="polite">
+          <span class="projection__day" id="projectionDay">第 661 天</span>
+          <h2 id="projectionTitle">今晚，先把这颗星给你</h2>
+          <p id="projectionMessage">
+            这颗星星还没有写下正式的话，但它已经属于我们。
+          </p>
+          <time id="projectionDate" datetime=""></time>
+        </article>
+
+        <p class="quiet-note">
+          这片星空会每天多一颗，直到很久很久以后。
+        </p>
+      </section>
+    </main>
+
+    <script src="data/stars.js"></script>
+    <script src="script.js"></script>
+  </body>
 </html>
