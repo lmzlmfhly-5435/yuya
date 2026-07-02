@@ -1,8 +1,8 @@
-# 第 661 颗星
+# Wang,yuya&zhennan
 
 这是一个送给女朋友的星空礼物网页原型。
 
-当前版本使用 `assets/meadow-girl-real-sky.png` 作为干净夜空背景，真正的 661 颗星星由 `script.js` 动态生成，不是画在背景图里的。
+当前版本使用 `assets/meadow-girl-hq-sky.png` 作为高清干净夜空背景，真正的 661 颗星星由 `script.js` 的 canvas 星场动态绘制，不是画在背景图里的。
 
 ## 怎么打开
 
