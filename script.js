@@ -11,7 +11,7 @@ const enterButton = document.querySelector("#enterButton");
 const todayButton = document.querySelector("#todayButton");
 const randomButton = document.querySelector("#randomButton");
 const dateInput = document.querySelector("#dateInput");
-const sceneImage = document.querySelector("#sceneImage");
+const handTarget = document.querySelector("#handTarget");
 const starCanvas = document.querySelector("#starCanvas");
 const starContext = starCanvas.getContext("2d");
 const starLayer = document.querySelector("#starLayer");
@@ -722,25 +722,18 @@ function animateStarToHand(star) {
 }
 
 function getHandPoint() {
-  const rect = sceneImage.getBoundingClientRect();
-  const naturalRatio = sceneImage.naturalWidth / sceneImage.naturalHeight;
-  const boxRatio = rect.width / rect.height;
-  let renderedWidth = rect.width;
-  let renderedHeight = rect.height;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  if (boxRatio > naturalRatio) {
-    renderedHeight = rect.width / naturalRatio;
-    offsetY = (rect.height - renderedHeight) / 2;
-  } else {
-    renderedWidth = rect.height * naturalRatio;
-    offsetX = (rect.width - renderedWidth) / 2;
+  if (!handTarget) {
+    return {
+      x: window.innerWidth * CONFIG.handPoint.x,
+      y: window.innerHeight * CONFIG.handPoint.y,
+    };
   }
 
+  const rect = handTarget.getBoundingClientRect();
+
   return {
-    x: rect.left + offsetX + renderedWidth * CONFIG.handPoint.x,
-    y: rect.top + offsetY + renderedHeight * CONFIG.handPoint.y,
+    x: rect.left + rect.width * 0.5,
+    y: rect.top + rect.height * 0.5,
   };
 }
 
@@ -791,16 +784,10 @@ function setupEvents() {
     resizeStarCanvas();
     positionHandGlow();
   });
-  sceneImage.addEventListener("load", positionHandGlow);
 }
 
 function init() {
-  if (sceneImage.complete && sceneImage.naturalWidth > 0) {
-    hideLoader();
-  } else {
-    sceneImage.addEventListener("load", hideLoader);
-    sceneImage.addEventListener("error", hideLoader);
-  }
+  requestAnimationFrame(hideLoader);
 
   updateDayCounters();
   buildStars();

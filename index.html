@@ -22,11 +22,7 @@
 
     <main class="app-shell" id="app">
       <section class="intro" id="intro" aria-label="开场">
-        <img
-          class="intro__image"
-          src="assets/meadow-girl-hq-sky.png"
-          alt="夜晚草坪上，一个女孩坐着向干净的夜空伸手"
-        />
+        <div class="intro__cosmos" aria-hidden="true"></div>
         <div class="intro__shade" aria-hidden="true"></div>
         <div class="intro__copy">
           <p class="intro__eyebrow">A sky only for you</p>
@@ -46,12 +42,21 @@
         <div class="sky__backdrop" aria-hidden="true"></div>
         <div class="sky__nebula" aria-hidden="true"></div>
         <div class="sky__horizon" aria-hidden="true"></div>
-        <img
-          class="sky__scene"
-          id="sceneImage"
-          src="assets/meadow-girl-hq-sky.png"
-          alt="女孩坐在夜晚草坪上，向真实悬挂的星空伸出手"
-        />
+        <div class="landscape" aria-hidden="true">
+          <div class="landscape__ridge landscape__ridge--far"></div>
+          <div class="landscape__ridge landscape__ridge--near"></div>
+          <div class="landscape__meadow"></div>
+        </div>
+        <div class="girl" id="girlFigure" aria-hidden="true">
+          <div class="girl__aura"></div>
+          <div class="girl__hair"></div>
+          <div class="girl__head"></div>
+          <div class="girl__body"></div>
+          <div class="girl__skirt"></div>
+          <div class="girl__arm girl__arm--upper"></div>
+          <div class="girl__arm girl__arm--fore"></div>
+          <div class="girl__hand" id="handTarget"></div>
+        </div>
         <div class="sky__depth" aria-hidden="true"></div>
         <div class="sky__film" aria-hidden="true"></div>
         <div class="sky__weather" aria-hidden="true"></div>
