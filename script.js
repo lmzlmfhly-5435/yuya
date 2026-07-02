@@ -131,8 +131,8 @@ function buildStars() {
     const y = 5.5 + Math.pow(random(), 1.1) * 49;
     const skyDepth = Math.min(1, Math.max(0, (y - 5.5) / 49));
     const nearness = Math.min(1, 0.24 + skyDepth * 0.42 + random() * 0.34);
-    const radius = 0.34 + random() * 0.64 + nearness * 0.34 + specialBoost;
-    const hotRadius = Math.max(13, radius * 9 + (type === "normal" ? 0 : 8));
+    const radius = 0.86 + random() * 1.08 + nearness * 0.76 + specialBoost * 0.5;
+    const hotRadius = Math.max(18, radius * 11 + (type === "normal" ? 0 : 10));
     const companionCount =
       1 + Math.floor(random() * 3) + (type === "normal" ? 0 : 2) + (hasMessage ? 1 : 0);
     const companions = [];
@@ -140,9 +140,9 @@ function buildStars() {
     for (let i = 0; i < companionCount; i += 1) {
       companions.push({
         angle: random() * Math.PI * 2,
-        distance: 2.8 + random() * (7.5 + nearness * 7),
-        radius: 0.12 + random() * 0.32 + nearness * 0.08,
-        alpha: 0.12 + random() * 0.22 + specialBoost * 0.08,
+        distance: 2.4 + random() * (4.8 + nearness * 4.6),
+        radius: 0.18 + random() * 0.34 + nearness * 0.12,
+        alpha: 0.1 + random() * 0.18 + specialBoost * 0.06,
         hueOffset: -16 + random() * 34,
         phase: random() * Math.PI * 2,
       });
@@ -155,9 +155,9 @@ function buildStars() {
       x,
       y,
       radius,
-      halo: 11 + radius * (10 + random() * 9),
+      halo: 12 + radius * (8 + random() * 7),
       hue: type === "memory" ? 346 + random() * 18 : 39 + nearness * 8 + random() * 12,
-      alpha: 0.28 + random() * 0.34 + specialBoost * 0.24 + nearness * 0.1,
+      alpha: 0.42 + random() * 0.34 + specialBoost * 0.2 + nearness * 0.12,
       nearness,
       phase: random() * Math.PI * 2,
       speed: 0.0008 + random() * 0.0014,
@@ -166,7 +166,7 @@ function buildStars() {
       shapePhase: random() * Math.PI * 2,
       shapeSpeed: 0.00022 + random() * 0.00046,
       shapeTilt: random() * Math.PI * 2,
-      shapeStretch: 1.28 + random() * 1.16 + nearness * 0.72,
+      shapeRoundness: 0.92 + random() * 0.12,
       prism: random(),
       companions,
     };
@@ -269,21 +269,21 @@ function drawStar(star, time) {
   const morph = clamp(bloom * 0.74 + attention * 0.42, 0, 1.18);
   const alpha = Math.min(0.95, star.alpha * twinkle + attention * 0.16);
   const angle = star.shapeTilt + Math.sin(time * 0.00007 + star.phase) * 0.18;
-  const stretch = star.shapeStretch + morph * 0.9;
-  const haloRadius = star.halo * (0.62 + morph * 0.74) * (selected ? 1.28 : hovered ? 1.16 : 1);
+  const roundness = star.shapeRoundness + morph * 0.05;
+  const haloRadius = star.halo * (0.72 + morph * 0.48) * (selected ? 1.34 : hovered ? 1.2 : 1);
   const coreRadius =
-    Math.max(0.44, star.radius * (0.74 + star.nearness * 0.22 + morph * 0.18)) *
-    (selected ? 1.16 : hovered ? 1.08 : 1);
+    Math.max(0.72, star.radius * (0.92 + star.nearness * 0.18 + morph * 0.16)) *
+    (selected ? 1.22 : hovered ? 1.12 : 1);
 
   drawEllipticGlow(
     x,
     y,
     haloRadius,
-    0.74 + stretch * 0.2,
-    0.3 + star.nearness * 0.18 + morph * 0.08,
+    1.02 + morph * 0.08,
+    roundness,
     angle,
     star.hue,
-    alpha * (0.1 + morph * 0.17 + attention * 0.12),
+    alpha * (0.12 + morph * 0.16 + attention * 0.12),
   );
   drawCompanionDust(star, x, y, time, alpha, attention);
 
@@ -291,7 +291,7 @@ function drawStar(star, time) {
     drawSoftCluster(star, x, y, time, alpha, morph, attention, angle);
   }
 
-  drawCore(x, y, coreRadius, star.hue, alpha, angle, stretch, morph);
+  drawCore(x, y, coreRadius, star.hue, alpha, angle, roundness, morph);
 
   if (selected || hovered || special || (hasMessage && star.prism > 0.34) || star.prism > 0.985) {
     drawFineDiffraction(x, y, coreRadius, star.hue, alpha, angle, star.prism, attention);
@@ -318,7 +318,7 @@ function drawEllipticGlow(x, y, radius, scaleX, scaleY, angle, hue, alpha) {
   starContext.restore();
 }
 
-function drawCore(x, y, radius, hue, alpha, angle, stretch, morph) {
+function drawCore(x, y, radius, hue, alpha, angle, roundness, morph) {
   const coreRadius = Math.max(radius, 0.52);
   const gradient = starContext.createRadialGradient(
     -coreRadius * 0.24,
@@ -336,7 +336,7 @@ function drawCore(x, y, radius, hue, alpha, angle, stretch, morph) {
   starContext.save();
   starContext.translate(x, y);
   starContext.rotate(angle);
-  starContext.scale(1 + (stretch - 1) * 0.08 + morph * 0.06, 0.82 + morph * 0.08);
+  starContext.scale(1 + morph * 0.04, roundness);
   starContext.fillStyle = gradient;
   starContext.beginPath();
   starContext.arc(0, 0, coreRadius, 0, Math.PI * 2);
@@ -383,8 +383,8 @@ function drawSoftCluster(star, x, y, time, alpha, morph, attention, baseAngle) {
       lobeX,
       lobeY,
       radius,
-      0.74 + star.shapeStretch * 0.16,
-      0.34 + morph * 0.1,
+      0.96 + morph * 0.08,
+      0.88 + morph * 0.08,
       angle + Math.PI * 0.18,
       star.hue + i * 8,
       lobeAlpha,
@@ -396,15 +396,15 @@ function drawFineDiffraction(x, y, radius, hue, alpha, angle, prism, attention) 
   const rayAlpha = alpha * (0.12 + attention * 0.18);
   if (rayAlpha <= 0.018) return;
 
-  const longRay = radius * (8.2 + prism * 5 + attention * 4);
-  const shortRay = radius * (4.2 + prism * 3 + attention * 2);
+  const longRay = radius * (2.8 + prism * 1.4 + attention * 1.8);
+  const shortRay = radius * (1.8 + prism * 0.9 + attention * 1.1);
   const rays = [
-    { angle, length: longRay, width: 0.38 + attention * 0.18, alpha: rayAlpha },
+    { angle, length: longRay, width: 0.5 + attention * 0.16, alpha: rayAlpha * 0.78 },
     {
       angle: angle + Math.PI / 2,
       length: shortRay,
-      width: 0.28 + attention * 0.12,
-      alpha: rayAlpha * 0.62,
+      width: 0.38 + attention * 0.12,
+      alpha: rayAlpha * 0.44,
     },
   ];
 
@@ -633,7 +633,7 @@ function animateStarToHand(star) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
-    ctx.scale(3.4, 0.52);
+    ctx.scale(2.15, 0.72);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);

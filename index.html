@@ -43,6 +43,9 @@
       </section>
 
       <section class="sky" aria-label="我们的星空">
+        <div class="sky__backdrop" aria-hidden="true"></div>
+        <div class="sky__nebula" aria-hidden="true"></div>
+        <div class="sky__horizon" aria-hidden="true"></div>
         <img
           class="sky__scene"
           id="sceneImage"
@@ -53,6 +56,7 @@
         <div class="sky__film" aria-hidden="true"></div>
         <div class="sky__weather" aria-hidden="true"></div>
         <canvas class="star-canvas" id="starCanvas" aria-hidden="true"></canvas>
+        <div class="sky__foreground" aria-hidden="true"></div>
 
         <header class="topbar" aria-label="星空状态">
           <a class="brand" href="#app" aria-label="回到开场">

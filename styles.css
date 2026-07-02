@@ -112,8 +112,7 @@ button {
   transform: scale(1.04);
 }
 
-.intro__image,
-.sky__scene {
+.intro__image {
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -123,18 +122,77 @@ button {
   object-position: center center;
 }
 
+.sky__backdrop,
+.sky__nebula,
+.sky__horizon,
+.sky__scene,
+.sky__depth,
+.sky__film,
+.sky__weather,
+.sky__foreground {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sky__backdrop {
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(64, 96, 154, 0.3), transparent 38%),
+    radial-gradient(ellipse at 72% 30%, rgba(107, 222, 205, 0.13), transparent 32%),
+    radial-gradient(ellipse at 31% 42%, rgba(245, 153, 160, 0.09), transparent 28%),
+    linear-gradient(180deg, #02040d 0%, #071126 32%, #123458 63%, #101b21 100%);
+  animation: skyBreath 16s ease-in-out infinite;
+}
+
+.sky__nebula {
+  z-index: 1;
+  opacity: 0.72;
+  background:
+    radial-gradient(ellipse at 44% 18%, rgba(255, 246, 210, 0.11), transparent 22%),
+    radial-gradient(ellipse at 63% 25%, rgba(132, 225, 216, 0.09), transparent 31%),
+    radial-gradient(ellipse at 18% 36%, rgba(247, 164, 168, 0.06), transparent 24%),
+    linear-gradient(110deg, transparent 0 28%, rgba(255, 255, 255, 0.035) 46%, transparent 66% 100%);
+  filter: blur(16px);
+  transform: translate3d(0, 0, 0) scale(1.04);
+  animation: nebulaDrift 28s ease-in-out infinite alternate;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 70%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 70%);
+}
+
+.sky__horizon {
+  z-index: 2;
+  background:
+    linear-gradient(180deg, transparent 0 54%, rgba(255, 219, 158, 0.1) 65%, rgba(15, 38, 43, 0.36) 75%, rgba(3, 7, 13, 0.62) 100%),
+    radial-gradient(ellipse at 62% 71%, rgba(255, 170, 126, 0.15), transparent 34%),
+    radial-gradient(ellipse at 31% 73%, rgba(132, 225, 216, 0.08), transparent 30%);
+  animation: horizonGlow 12s ease-in-out infinite;
+}
+
 .sky__scene {
-  transform: scale(1.012);
-  filter: saturate(1.05) contrast(1.04) brightness(0.98);
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0.9;
+  transform: scale(1.026);
+  filter: saturate(1.08) contrast(1.06) brightness(0.9);
   transform-origin: 50% 55%;
   transition:
     filter 560ms ease,
     transform 1400ms cubic-bezier(0.16, 0.84, 0.2, 1);
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.05) 24%, rgba(0, 0, 0, 0.68) 45%, #000 58%);
+  mask-image:
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.05) 24%, rgba(0, 0, 0, 0.68) 45%, #000 58%);
 }
 
 .app-shell.is-star-traveling .sky__scene {
-  transform: scale(1.016);
-  filter: saturate(1.06) contrast(1.04) brightness(1.01);
+  transform: scale(1.035) translate3d(0, -0.2%, 0);
+  filter: saturate(1.12) contrast(1.08) brightness(0.98);
 }
 
 .intro__shade {
@@ -212,56 +270,101 @@ button {
   overflow: hidden;
 }
 
-.sky__depth,
-.sky__film,
-.sky__weather {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
 .sky__depth {
-  z-index: 1;
+  z-index: 6;
   background:
-    linear-gradient(180deg, rgba(0, 3, 12, 0.58) 0%, rgba(0, 5, 17, 0.22) 38%, rgba(2, 9, 18, 0.04) 54%, rgba(1, 5, 11, 0.54) 100%),
-    linear-gradient(90deg, rgba(1, 4, 13, 0.24), transparent 45%, rgba(1, 4, 12, 0.2)),
-    radial-gradient(ellipse at 67% 54%, rgba(255, 236, 174, 0.09), transparent 25%),
-    radial-gradient(ellipse at 67% 84%, rgba(8, 20, 18, 0.52), transparent 42%);
+    linear-gradient(180deg, rgba(0, 2, 9, 0.18) 0%, rgba(0, 5, 17, 0.08) 35%, rgba(2, 9, 18, 0.02) 52%, rgba(1, 5, 11, 0.6) 100%),
+    radial-gradient(ellipse at 67% 54%, rgba(255, 236, 174, 0.1), transparent 26%),
+    radial-gradient(ellipse at 68% 84%, rgba(9, 28, 23, 0.58), transparent 43%),
+    radial-gradient(ellipse at 12% 87%, rgba(3, 8, 15, 0.7), transparent 36%);
 }
 
 .sky__film {
-  z-index: 3;
+  z-index: 9;
   background:
-    linear-gradient(180deg, rgba(2, 5, 15, 0.16) 0%, rgba(2, 5, 15, 0.02) 44%, rgba(2, 5, 15, 0.2) 80%, rgba(2, 5, 15, 0.56) 100%),
-    linear-gradient(90deg, rgba(2, 5, 15, 0.2), transparent 48%, rgba(2, 5, 15, 0.18));
+    linear-gradient(180deg, rgba(2, 5, 15, 0.2) 0%, rgba(2, 5, 15, 0.02) 36%, rgba(2, 5, 15, 0.18) 78%, rgba(2, 5, 15, 0.62) 100%),
+    linear-gradient(90deg, rgba(2, 5, 15, 0.26), transparent 48%, rgba(2, 5, 15, 0.24));
 }
 
 .sky__weather {
-  z-index: 5;
-  opacity: 0.22;
+  z-index: 8;
+  opacity: 0.34;
   background-image:
-    radial-gradient(ellipse at 62% 30%, rgba(255, 246, 205, 0.05), transparent 38%),
-    radial-gradient(ellipse at 72% 45%, rgba(132, 225, 216, 0.04), transparent 42%);
+    radial-gradient(ellipse at 62% 30%, rgba(255, 246, 205, 0.07), transparent 38%),
+    radial-gradient(ellipse at 72% 45%, rgba(132, 225, 216, 0.06), transparent 42%),
+    linear-gradient(100deg, transparent 0 35%, rgba(255, 255, 255, 0.04) 48%, transparent 62% 100%);
+  filter: blur(8px);
+  animation: weatherDrift 20s ease-in-out infinite alternate;
   -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.86), transparent 82%);
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.86), transparent 82%);
+}
+
+.sky__foreground {
+  z-index: 10;
+  opacity: 0.62;
+  background:
+    linear-gradient(180deg, transparent 0 70%, rgba(2, 7, 9, 0.1) 78%, rgba(2, 6, 8, 0.72) 100%),
+    repeating-linear-gradient(
+      84deg,
+      transparent 0 22px,
+      rgba(157, 219, 140, 0.16) 23px 24px,
+      transparent 25px 48px
+    ),
+    repeating-linear-gradient(
+      96deg,
+      transparent 0 30px,
+      rgba(255, 246, 205, 0.08) 31px 32px,
+      transparent 33px 68px
+    );
+  background-position: 0 0, 0 100%, 18px 100%;
+  background-size: auto, auto 34%, auto 26%;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0 64%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0 64%, #000 100%);
+  animation: grassSway 9s ease-in-out infinite alternate;
 }
 
 .star-canvas {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 5;
   width: 100%;
   height: 100%;
   pointer-events: none;
   mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 62%, rgba(0, 0, 0, 0.55) 72%, transparent 86%);
+  mask-image: linear-gradient(to bottom, #000 0 62%, rgba(0, 0, 0, 0.55) 72%, transparent 86%);
+}
+
+@keyframes skyBreath {
+  0%, 100% { filter: brightness(0.92) saturate(1.02); transform: scale(1); }
+  50% { filter: brightness(1.08) saturate(1.12); transform: scale(1.012); }
+}
+
+@keyframes nebulaDrift {
+  from { transform: translate3d(-1.8%, -0.4%, 0) scale(1.04); }
+  to { transform: translate3d(1.4%, 0.8%, 0) scale(1.08); }
+}
+
+@keyframes horizonGlow {
+  0%, 100% { opacity: 0.8; filter: saturate(0.96); }
+  50% { opacity: 1; filter: saturate(1.1); }
+}
+
+@keyframes weatherDrift {
+  from { transform: translate3d(-1.2%, 0, 0); }
+  to { transform: translate3d(1.4%, -0.8%, 0); }
+}
+
+@keyframes grassSway {
+  from { transform: translate3d(-0.3%, 0, 0); }
+  to { transform: translate3d(0.35%, 0, 0); }
 }
 
 .topbar {
   position: absolute;
   top: 18px;
   left: 50%;
-  z-index: 8;
+  z-index: 14;
   display: grid;
   grid-template-columns: auto minmax(190px, 1fr) auto;
   align-items: center;
@@ -365,7 +468,7 @@ button {
 }
 
 .star-layer {
-  z-index: 5;
+  z-index: 7;
   overflow: hidden;
 }
 
@@ -432,7 +535,7 @@ button {
 }
 
 .traveler-layer {
-  z-index: 10;
+  z-index: 16;
 }
 
 .travel-canvas {
@@ -442,18 +545,18 @@ button {
   pointer-events: none;
 }
 
-/* Flying star — directional stardust, not a round orb */
+/* Flying star: point light with a short atmospheric wake */
 .fly-star {
   position: fixed;
   left: 0;
   top: 0;
   z-index: 101;
-  width: 86px;
-  height: 22px;
+  width: 62px;
+  height: 42px;
   border-radius: 999px;
   background: transparent;
   transform: translate(-50%, -50%) scale(0);
-  transform-origin: 58% 50%;
+  transform-origin: 62% 50%;
   pointer-events: none;
   will-change: transform;
   opacity: var(--fly-opacity, 0.96);
@@ -464,24 +567,28 @@ button {
 
 .fly-star__tail {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 50%;
+  width: 72%;
+  height: 40%;
   border-radius: inherit;
-  opacity: 0.72;
+  opacity: 0.5;
   background:
-    linear-gradient(90deg, transparent 0%, rgba(132, 225, 216, 0.08) 18%, rgba(255, 249, 220, 0.32) 52%, rgba(255, 255, 255, 0.86) 72%, rgba(255, 249, 220, 0) 100%);
-  filter: blur(5px);
+    linear-gradient(90deg, transparent 0%, rgba(132, 225, 216, 0.08) 20%, rgba(255, 249, 220, 0.24) 58%, rgba(255, 255, 255, 0.58) 100%);
+  filter: blur(6px);
+  transform: translateY(-50%);
 }
 
 .fly-star__core {
   position: absolute;
-  left: 72%;
+  left: 70%;
   top: 50%;
-  width: 16px;
-  height: 5px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: radial-gradient(
-    ellipse at 44% 48%,
+    circle at 44% 40%,
     rgba(255, 255, 255, 1) 0 18%,
     rgba(255, 248, 216, 0.86) 38%,
     rgba(246, 214, 123, 0.32) 62%,
@@ -499,7 +606,7 @@ button {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 42px;
+  width: 30px;
   height: 1px;
   border-radius: 999px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
@@ -508,8 +615,8 @@ button {
 }
 
 .fly-star__core::after {
-  width: 22px;
-  opacity: 0.52;
+  width: 18px;
+  opacity: 0.46;
   transform: translate(-50%, -50%) rotate(82deg);
 }
 
@@ -518,12 +625,12 @@ button {
   left: 44%;
   top: 50%;
   width: 112%;
-  height: 240%;
-  opacity: 0.2;
+  height: 142%;
+  opacity: 0.18;
   border-radius: 50%;
   background:
     radial-gradient(ellipse at 62% 50%, rgba(255, 250, 222, 0.22), rgba(246, 214, 123, 0.08) 36%, transparent 72%);
-  transform: translate(-50%, -50%) scaleX(1.24);
+  transform: translate(-50%, -50%) scaleX(0.96);
   filter: blur(9px);
   transition: opacity 180ms ease;
 }
@@ -563,7 +670,7 @@ button {
   position: fixed;
   left: var(--hand-x);
   top: var(--hand-y);
-  z-index: 7;
+  z-index: 12;
   width: clamp(112px, 12vw, 176px);
   height: clamp(52px, 5.8vw, 86px);
   border-radius: 999px;
@@ -599,7 +706,7 @@ button {
   position: absolute;
   top: clamp(118px, 18vh, 180px);
   left: 50%;
-  z-index: 6;
+  z-index: 13;
   width: min(920px, calc(100% - 36px));
   pointer-events: none;
   text-align: center;
@@ -671,7 +778,7 @@ button {
   position: absolute;
   left: 50%;
   bottom: clamp(18px, 4vh, 42px);
-  z-index: 8;
+  z-index: 14;
   width: min(760px, calc(100% - 32px));
   margin: 0;
   color: rgba(247, 240, 223, 0.76);
