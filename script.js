@@ -133,6 +133,21 @@ function buildStars() {
     const nearness = Math.min(1, 0.24 + skyDepth * 0.42 + random() * 0.34);
     const radius = 0.34 + random() * 0.64 + nearness * 0.34 + specialBoost;
     const hotRadius = Math.max(13, radius * 9 + (type === "normal" ? 0 : 8));
+    const companionCount =
+      1 + Math.floor(random() * 3) + (type === "normal" ? 0 : 2) + (hasMessage ? 1 : 0);
+    const companions = [];
+
+    for (let i = 0; i < companionCount; i += 1) {
+      companions.push({
+        angle: random() * Math.PI * 2,
+        distance: 2.8 + random() * (7.5 + nearness * 7),
+        radius: 0.12 + random() * 0.32 + nearness * 0.08,
+        alpha: 0.12 + random() * 0.22 + specialBoost * 0.08,
+        hueOffset: -16 + random() * 34,
+        phase: random() * Math.PI * 2,
+      });
+    }
+
     const star = {
       day,
       type,
@@ -148,6 +163,12 @@ function buildStars() {
       speed: 0.0008 + random() * 0.0014,
       drift: 0.24 + nearness * 0.92 + random() * 0.52,
       hotRadius,
+      shapePhase: random() * Math.PI * 2,
+      shapeSpeed: 0.00022 + random() * 0.00046,
+      shapeTilt: random() * Math.PI * 2,
+      shapeStretch: 1.28 + random() * 1.16 + nearness * 0.72,
+      prism: random(),
+      companions,
     };
     const hit = document.createElement("button");
 
@@ -219,77 +240,194 @@ function drawStars(time = 0) {
   }
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function smoothstep01(value) {
+  const t = clamp(value, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 function drawStar(star, time) {
   const selected = star.day === activeDay;
   const hovered = star.day === hoveredDay;
   const special = star.type !== "normal";
   const hasMessage = star.hasMessage;
+  const attention = selected ? 1 : hovered ? 0.72 : special ? 0.26 : hasMessage ? 0.18 : 0;
+  const breath = 0.5 + Math.sin(time * star.shapeSpeed + star.shapePhase) * 0.5;
+  const bloom = smoothstep01(breath);
   const twinkle =
-    0.82 +
+    0.78 +
     Math.sin(time * star.speed + star.phase) * 0.1 +
-    Math.sin(time * star.speed * 0.37 + star.phase * 1.7) * 0.035;
+    Math.sin(time * star.speed * 0.37 + star.phase * 1.7) * 0.042 +
+    bloom * 0.08;
   const driftX = Math.sin(time * 0.00016 + star.phase) * star.drift * star.nearness;
   const driftY = Math.cos(time * 0.00013 + star.phase) * star.drift * 0.28;
   const x = (star.x / 100) * canvasWidth + driftX;
   const y = (star.y / 100) * canvasHeight + driftY;
-  const glowScale = selected ? 2.28 : hovered ? 1.86 : special ? 1.22 : hasMessage ? 1.12 : 1;
-  const coreScale = selected ? 1.32 : hovered ? 1.2 : special ? 1.08 : hasMessage ? 1.04 : 1;
-  const alpha = Math.min(0.95, star.alpha * twinkle + (selected ? 0.18 : hovered ? 0.13 : 0));
-  const coreRadius = star.radius * coreScale;
-  const haloRadius = star.halo * glowScale;
+  const morph = clamp(bloom * 0.74 + attention * 0.42, 0, 1.18);
+  const alpha = Math.min(0.95, star.alpha * twinkle + attention * 0.16);
+  const angle = star.shapeTilt + Math.sin(time * 0.00007 + star.phase) * 0.18;
+  const stretch = star.shapeStretch + morph * 0.9;
+  const haloRadius = star.halo * (0.62 + morph * 0.74) * (selected ? 1.28 : hovered ? 1.16 : 1);
+  const coreRadius =
+    Math.max(0.44, star.radius * (0.74 + star.nearness * 0.22 + morph * 0.18)) *
+    (selected ? 1.16 : hovered ? 1.08 : 1);
 
-  drawGlow(x, y, haloRadius, star.hue, alpha * (selected || hovered ? 0.46 : hasMessage ? 0.26 : 0.18));
-  drawCore(x, y, coreRadius, star.hue, alpha);
+  drawEllipticGlow(
+    x,
+    y,
+    haloRadius,
+    0.74 + stretch * 0.2,
+    0.3 + star.nearness * 0.18 + morph * 0.08,
+    angle,
+    star.hue,
+    alpha * (0.1 + morph * 0.17 + attention * 0.12),
+  );
+  drawCompanionDust(star, x, y, time, alpha, attention);
 
-  if (special || selected || hovered || hasMessage) {
-    const airAlpha = selected ? 0.52 : hovered ? 0.38 : hasMessage ? 0.16 : 0.14;
-    drawScintillation(x, y, coreRadius, star.hue, airAlpha, star.phase, time, star.nearness);
+  if (special || hasMessage || selected || hovered || star.nearness > 0.58) {
+    drawSoftCluster(star, x, y, time, alpha, morph, attention, angle);
+  }
+
+  drawCore(x, y, coreRadius, star.hue, alpha, angle, stretch, morph);
+
+  if (selected || hovered || special || (hasMessage && star.prism > 0.34) || star.prism > 0.985) {
+    drawFineDiffraction(x, y, coreRadius, star.hue, alpha, angle, star.prism, attention);
   }
 }
 
-function drawGlow(x, y, radius, hue, alpha) {
-  const gradient = starContext.createRadialGradient(x, y, 0, x, y, radius);
+function drawEllipticGlow(x, y, radius, scaleX, scaleY, angle, hue, alpha) {
+  if (alpha <= 0.002 || radius <= 0) return;
+
+  const gradient = starContext.createRadialGradient(0, 0, 0, 0, 0, radius);
   gradient.addColorStop(0, `hsla(${hue}, 100%, 94%, ${alpha})`);
-  gradient.addColorStop(0.22, `hsla(${hue}, 100%, 80%, ${alpha * 0.28})`);
-  gradient.addColorStop(0.58, `hsla(${hue + 52}, 76%, 70%, ${alpha * 0.055})`);
+  gradient.addColorStop(0.18, `hsla(${hue}, 100%, 82%, ${alpha * 0.28})`);
+  gradient.addColorStop(0.48, `hsla(${hue + 48}, 72%, 70%, ${alpha * 0.075})`);
   gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+  starContext.save();
+  starContext.translate(x, y);
+  starContext.rotate(angle);
+  starContext.scale(scaleX, scaleY);
   starContext.fillStyle = gradient;
   starContext.beginPath();
-  starContext.arc(x, y, radius, 0, Math.PI * 2);
+  starContext.arc(0, 0, radius, 0, Math.PI * 2);
   starContext.fill();
+  starContext.restore();
 }
 
-function drawCore(x, y, radius, hue, alpha) {
+function drawCore(x, y, radius, hue, alpha, angle, stretch, morph) {
+  const coreRadius = Math.max(radius, 0.52);
   const gradient = starContext.createRadialGradient(
-    x - radius * 0.26,
-    y - radius * 0.28,
+    -coreRadius * 0.24,
+    -coreRadius * 0.22,
     0,
-    x,
-    y,
-    Math.max(radius, 0.8) * 1.55,
+    0,
+    0,
+    coreRadius * (1.4 + morph * 0.28),
   );
   gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-  gradient.addColorStop(0.32, `hsla(${hue}, 100%, 88%, ${alpha * 0.72})`);
-  gradient.addColorStop(0.62, `hsla(${hue}, 100%, 68%, ${alpha * 0.18})`);
+  gradient.addColorStop(0.24, `hsla(${hue}, 100%, 91%, ${alpha * 0.8})`);
+  gradient.addColorStop(0.54, `hsla(${hue}, 96%, 72%, ${alpha * 0.22})`);
   gradient.addColorStop(1, `hsla(${hue}, 100%, 62%, 0)`);
 
+  starContext.save();
+  starContext.translate(x, y);
+  starContext.rotate(angle);
+  starContext.scale(1 + (stretch - 1) * 0.08 + morph * 0.06, 0.82 + morph * 0.08);
   starContext.fillStyle = gradient;
   starContext.beginPath();
-  starContext.arc(x, y, Math.max(radius, 0.52), 0, Math.PI * 2);
+  starContext.arc(0, 0, coreRadius, 0, Math.PI * 2);
   starContext.fill();
+  starContext.restore();
 }
 
-function drawScintillation(x, y, radius, hue, alpha, phase, time, nearness) {
-  const lobeCount = 4;
+function drawCompanionDust(star, x, y, time, alpha, attention) {
+  const dustAlpha = alpha * (0.62 + attention * 0.34);
+
+  for (const dust of star.companions) {
+    const pulse = 0.62 + Math.sin(time * star.speed * 0.72 + dust.phase) * 0.22;
+    const drift = Math.sin(time * 0.00008 + dust.phase) * 0.38;
+    const angle = star.shapeTilt + dust.angle + drift;
+    const distance = dust.distance * (0.76 + star.nearness * 0.34);
+    const dustX = x + Math.cos(angle) * distance;
+    const dustY = y + Math.sin(angle) * distance * 0.66;
+    const radius = dust.radius * (0.78 + pulse * 0.28 + attention * 0.22);
+    const speckAlpha = clamp(dustAlpha * dust.alpha * pulse, 0, 0.34);
+
+    if (speckAlpha <= 0.01) continue;
+
+    starContext.fillStyle = `hsla(${star.hue + dust.hueOffset}, 92%, 88%, ${speckAlpha})`;
+    starContext.beginPath();
+    starContext.arc(dustX, dustY, radius, 0, Math.PI * 2);
+    starContext.fill();
+  }
+}
+
+function drawSoftCluster(star, x, y, time, alpha, morph, attention, baseAngle) {
+  const lobeCount = attention > 0.6 ? 4 : 3;
 
   for (let i = 0; i < lobeCount; i += 1) {
-    const angle = phase + i * 1.72 + Math.sin(time * 0.00012 + phase) * 0.16;
-    const distance = radius * (2.4 + i * 0.28 + nearness * 0.9);
+    const phase = star.shapePhase + i * 1.94;
+    const pulse = 0.46 + Math.sin(time * star.shapeSpeed * (0.72 + i * 0.13) + phase) * 0.18;
+    const angle = baseAngle + i * 2.08 + Math.sin(time * 0.0001 + phase) * 0.18;
+    const distance = star.radius * (2.5 + i * 0.72 + morph * 2.1 + star.nearness * 1.2);
     const lobeX = x + Math.cos(angle) * distance;
-    const lobeY = y + Math.sin(angle) * distance * 0.68;
-    const lobeRadius = radius * (2.1 + i * 0.22);
-    const lobeAlpha = alpha * (0.42 - i * 0.055);
-    drawGlow(lobeX, lobeY, lobeRadius, hue + i * 9, lobeAlpha);
+    const lobeY = y + Math.sin(angle) * distance * 0.56;
+    const radius = star.radius * (4.2 + i * 0.8 + morph * 2.8 + star.nearness * 1.6);
+    const lobeAlpha = alpha * (0.026 + morph * 0.032 + attention * 0.028) * pulse;
+
+    drawEllipticGlow(
+      lobeX,
+      lobeY,
+      radius,
+      0.74 + star.shapeStretch * 0.16,
+      0.34 + morph * 0.1,
+      angle + Math.PI * 0.18,
+      star.hue + i * 8,
+      lobeAlpha,
+    );
+  }
+}
+
+function drawFineDiffraction(x, y, radius, hue, alpha, angle, prism, attention) {
+  const rayAlpha = alpha * (0.12 + attention * 0.18);
+  if (rayAlpha <= 0.018) return;
+
+  const longRay = radius * (8.2 + prism * 5 + attention * 4);
+  const shortRay = radius * (4.2 + prism * 3 + attention * 2);
+  const rays = [
+    { angle, length: longRay, width: 0.38 + attention * 0.18, alpha: rayAlpha },
+    {
+      angle: angle + Math.PI / 2,
+      length: shortRay,
+      width: 0.28 + attention * 0.12,
+      alpha: rayAlpha * 0.62,
+    },
+  ];
+
+  for (const ray of rays) {
+    starContext.save();
+    starContext.translate(x, y);
+    starContext.rotate(ray.angle);
+    const gradient = starContext.createLinearGradient(-ray.length, 0, ray.length, 0);
+    gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+    gradient.addColorStop(0.44, `hsla(${hue}, 94%, 88%, ${ray.alpha * 0.22})`);
+    gradient.addColorStop(0.5, `rgba(255, 255, 255, ${ray.alpha})`);
+    gradient.addColorStop(0.56, `hsla(${hue + 22}, 94%, 88%, ${ray.alpha * 0.22})`);
+    gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    starContext.strokeStyle = gradient;
+    starContext.lineWidth = ray.width;
+    starContext.lineCap = "round";
+    starContext.shadowColor = `hsla(${hue}, 100%, 86%, ${ray.alpha * 0.55})`;
+    starContext.shadowBlur = radius * 1.8;
+    starContext.beginPath();
+    starContext.moveTo(-ray.length, 0);
+    starContext.lineTo(ray.length, 0);
+    starContext.stroke();
+    starContext.restore();
   }
 }
 

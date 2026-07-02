@@ -393,30 +393,31 @@ button {
 .star--has-message::after {
   content: "";
   position: absolute;
-  inset: 8%;
+  inset: 16% 2%;
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(255, 246, 205, 0.14), rgba(246, 214, 123, 0.04) 42%, transparent 72%);
-  filter: blur(8px);
+    radial-gradient(ellipse at 54% 50%, rgba(255, 246, 205, 0.11), rgba(246, 214, 123, 0.034) 38%, transparent 74%);
+  filter: blur(11px);
+  transform: rotate(-16deg) scale(0.72, 0.58);
   animation: messagePulse 2.8s ease-in-out infinite;
   pointer-events: none;
 }
 
 @keyframes messagePulse {
-  0%, 100% { opacity: 0.26; transform: scale(0.72); }
-  50% { opacity: 0.62; transform: scale(1); }
+  0%, 100% { opacity: 0.22; transform: rotate(-16deg) scale(0.58, 0.44); }
+  50% { opacity: 0.52; transform: rotate(-16deg) scale(0.94, 0.66); }
 }
 
 .star::before {
   content: "";
   position: absolute;
-  inset: 16%;
+  inset: 18% 2%;
   border-radius: 50%;
   opacity: 0;
   background:
-    radial-gradient(circle, rgba(255, 248, 220, 0.16), rgba(246, 214, 123, 0.045) 46%, transparent 76%);
-  filter: blur(12px);
-  transform: scale(0.52);
+    radial-gradient(ellipse at center, rgba(255, 248, 220, 0.12), rgba(246, 214, 123, 0.032) 42%, transparent 78%);
+  filter: blur(14px);
+  transform: rotate(-18deg) scale(0.42, 0.36);
   transition:
     opacity 260ms ease,
     transform 420ms cubic-bezier(0.16, 0.84, 0.2, 1);
@@ -426,8 +427,8 @@ button {
 .star:hover::before,
 .star:focus-visible::before,
 .star.is-active::before {
-  opacity: 1;
-  transform: scale(1);
+  opacity: 0.84;
+  transform: rotate(-18deg) scale(1, 0.68);
 }
 
 .traveler-layer {
@@ -475,12 +476,12 @@ button {
   position: absolute;
   left: 72%;
   top: 50%;
-  width: 8px;
-  height: 8px;
+  width: 16px;
+  height: 5px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: radial-gradient(
-    circle at 42% 38%,
+    ellipse at 44% 48%,
     rgba(255, 255, 255, 1) 0 18%,
     rgba(255, 248, 216, 0.86) 38%,
     rgba(246, 214, 123, 0.32) 62%,
@@ -490,6 +491,26 @@ button {
     0 0 10px rgba(255, 255, 255, 0.56),
     0 0 28px rgba(255, 244, 184, 0.34),
     0 0 58px rgba(246, 214, 123, 0.16);
+}
+
+.fly-star__core::before,
+.fly-star__core::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  filter: blur(0.35px);
+  transform: translate(-50%, -50%);
+}
+
+.fly-star__core::after {
+  width: 22px;
+  opacity: 0.52;
+  transform: translate(-50%, -50%) rotate(82deg);
 }
 
 .fly-star__aura {
