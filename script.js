@@ -423,13 +423,13 @@ function animateStarToHand(star) {
   }
 
   const scaleKeyframes = [
-    { at: 0, val: 0.1 },
-    { at: 0.16, val: 0.32 },
-    { at: 0.44, val: 1.08 },
-    { at: 0.68, val: 2.18 },
-    { at: 0.84, val: 1.32 },
-    { at: 0.96, val: 0.62 },
-    { at: 1, val: 0.18 },
+    { at: 0, val: 0.08 },
+    { at: 0.18, val: 0.22 },
+    { at: 0.46, val: 0.72 },
+    { at: 0.68, val: 1.08 },
+    { at: 0.84, val: 0.78 },
+    { at: 0.96, val: 0.38 },
+    { at: 1, val: 0.08 },
   ];
 
   function scaleAt(t) {
@@ -448,6 +448,10 @@ function animateStarToHand(star) {
   flyEl.className = "fly-star";
   flyEl.style.left = from.x + "px";
   flyEl.style.top = from.y + "px";
+
+  const tailEl = document.createElement("div");
+  tailEl.className = "fly-star__tail";
+  flyEl.appendChild(tailEl);
 
   const coreEl = document.createElement("div");
   coreEl.className = "fly-star__core";
@@ -480,17 +484,23 @@ function animateStarToHand(star) {
   let wasLarge = false;
   app.classList.add("is-star-traveling");
 
-  function drawTrailEntry(x, y, r, alpha) {
+  function drawTrailEntry(x, y, r, alpha, angle) {
     if (r <= 0.3 || alpha <= 0.005) return;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
     g.addColorStop(0, `rgba(255, 249, 220, ${alpha * 0.44})`);
     g.addColorStop(0.28, `rgba(246, 214, 123, ${alpha * 0.2})`);
     g.addColorStop(0.62, `rgba(132, 225, 216, ${alpha * 0.06})`);
     g.addColorStop(1, "rgba(132, 225, 216, 0)");
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(3.4, 0.52);
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
   function frame(now) {
@@ -503,10 +513,10 @@ function animateStarToHand(star) {
     const baseR = 9;
     const r = baseR * sc;
     const nearFocus = Math.max(0, Math.sin(Math.PI * Math.min(1, t * 1.08)));
-    const blur = 0.12 + Math.max(0, sc - 1.1) * 0.34 + nearFocus * 0.16;
+    const blur = 0.08 + Math.max(0, sc - 0.9) * 0.2 + nearFocus * 0.12;
     const opacity = t < 0.1 ? 0.6 + t * 3.4 : t > 0.94 ? Math.max(0, 1 - (t - 0.94) / 0.06) : 0.96;
 
-    trail.push({ x: pos.x, y: pos.y, r: r * (1.24 + nearFocus * 0.26), ts: now });
+    trail.push({ x: pos.x, y: pos.y, r: r * (0.9 + nearFocus * 0.18), angle, ts: now });
     while (trail.length > MAX_TRAIL) trail.shift();
 
     ctx.clearRect(0, 0, w, h);
@@ -519,14 +529,13 @@ function animateStarToHand(star) {
       if (age >= 1) continue;
       const ta = (1 - age) * 0.26;
       const trR = tr.r * (1 - age * 0.58);
-      drawTrailEntry(tr.x, tr.y, trR, ta);
+      drawTrailEntry(tr.x, tr.y, trR, ta, tr.angle);
     }
     ctx.restore();
 
     flyEl.style.left = pos.x + "px";
     flyEl.style.top = pos.y + "px";
-    flyEl.style.transform = `translate(-50%, -50%) scale(${sc})`;
-    flyEl.style.setProperty("--fly-angle", `${angle}rad`);
+    flyEl.style.transform = `translate(-50%, -50%) rotate(${angle}rad) scale(${sc})`;
     flyEl.style.setProperty("--fly-blur", `${blur.toFixed(2)}px`);
     flyEl.style.setProperty("--fly-opacity", opacity.toFixed(3));
 
