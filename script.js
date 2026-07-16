@@ -2,9 +2,11 @@ const CONFIG = {
   relationshipStartDate: "2024-09-09",
   ambientStarCount: { desktop: 42, mobile: 24 },
   maxCanvasDpr: 1.5,
+  stateSyncIntervalMs: 12000,
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const PERSON_STORAGE_KEY = "star-tree-person";
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const lowPowerDevice =
   (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
@@ -59,6 +61,8 @@ const todayButton = document.querySelector("#todayButton");
 const randomButton = document.querySelector("#randomButton");
 const motionToggle = document.querySelector("#motionToggle");
 const motionToggleLabel = document.querySelector(".motion-toggle__label");
+const identitySelect = document.querySelector("#identitySelect");
+const logoutButton = document.querySelector("#logoutButton");
 const viewButtons = [...document.querySelectorAll(".view-nav__button")];
 const views = [...document.querySelectorAll(".view")];
 const dayCountNodes = document.querySelectorAll("[data-day-count]");
@@ -95,6 +99,8 @@ const sceneImage = document.querySelector("#sceneImage");
 const personButtons = [...document.querySelectorAll("[data-person]")];
 const moodButtons = [...document.querySelectorAll("[data-mood]")];
 const moodNodes = document.querySelectorAll("[data-mood-for]");
+const moodTimeNodes = document.querySelectorAll("[data-mood-time-for]");
+const currentPersonNameNodes = document.querySelectorAll("[data-current-person-name]");
 const whisperForm = document.querySelector("#whisperForm");
 const whisperAuthor = document.querySelector("#whisperAuthor");
 const whisperMessage = document.querySelector("#whisperMessage");
@@ -102,6 +108,13 @@ const whisperCount = document.querySelector("#whisperCount");
 const whisperList = document.querySelector("#whisperList");
 const nightQuestion = document.querySelector("#nightQuestion");
 const questionShuffle = document.querySelector("#questionShuffle");
+const nightAnswerForm = document.querySelector("#nightAnswerForm");
+const nightAnswerMessage = document.querySelector("#nightAnswerMessage");
+const nightAnswerCount = document.querySelector("#nightAnswerCount");
+const nightAnswerList = document.querySelector("#nightAnswerList");
+const wishForm = document.querySelector("#wishForm");
+const wishInput = document.querySelector("#wishInput");
+const wishList = document.querySelector("#wishList");
 
 let activeView = "tonight";
 let activeDay = totalDays;
@@ -120,6 +133,9 @@ let shootingStar = null;
 let selectedPerson = "yuya";
 let privateStateLoaded = false;
 let privateWhispers = [];
+let privateWishes = [];
+let privateAnswers = [];
+let stateSyncTimer = null;
 let questionIndex = 0;
 
 const nightQuestions = [
@@ -420,8 +436,10 @@ function switchView(target) {
     buildMemoryRail();
   }
 
-  if (target === "pulse") {
-    loadPrivateState({ force: true });
+  if (target === "pulse" || target === "letter") {
+    startStateSync();
+  } else {
+    stopStateSync();
   }
 
   if (target === "tonight" && !motionDisabled) startAmbientAnimation();
@@ -705,6 +723,10 @@ function renderMoods(moods = {}) {
     const value = moods[node.dataset.moodFor]?.mood;
     node.textContent = value || "还没留下心情";
   });
+  moodTimeNodes.forEach((node) => {
+    const updatedAt = moods[node.dataset.moodTimeFor]?.updatedAt;
+    node.textContent = updatedAt ? `更新于 ${relativeTime(updatedAt)}` : "还没有更新";
+  });
 }
 
 function renderWhispers() {
@@ -742,26 +764,120 @@ function renderWhispers() {
   whisperList.appendChild(fragment);
 }
 
-async function loadPrivateState({ force = false } = {}) {
+function renderWishes() {
+  wishList.replaceChildren();
+  const fragment = document.createDocumentFragment();
+  privateWishes.forEach((item) => {
+    const listItem = document.createElement("li");
+    listItem.classList.toggle("is-done", item.done === true);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.wishId = item.id;
+    button.setAttribute(
+      "aria-label",
+      `${item.done ? "标记为未完成" : "标记为已完成"}：${item.text}`,
+    );
+
+    const mark = document.createElement("span");
+    mark.textContent = item.done ? "✓" : "○";
+    const text = document.createElement("b");
+    text.textContent = String(item.text || "").slice(0, 80);
+    button.append(mark, text);
+    listItem.appendChild(button);
+    fragment.appendChild(listItem);
+  });
+  wishList.appendChild(fragment);
+}
+
+function renderAnswers() {
+  nightAnswerList.replaceChildren();
+  if (!privateAnswers.length) {
+    const empty = document.createElement("p");
+    empty.className = "question-answer-empty";
+    empty.textContent = "今晚的第一份回答，还在等你们写下。";
+    nightAnswerList.appendChild(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  [...privateAnswers].reverse().slice(0, 4).forEach((item) => {
+    const article = document.createElement("article");
+    const meta = document.createElement("strong");
+    meta.textContent = `${item.author === "yuya" ? "YUYA" : "ZHENNAN"} · ${relativeTime(item.createdAt)}`;
+    const answer = document.createElement("p");
+    answer.textContent = String(item.answer || "").slice(0, 160);
+    const question = document.createElement("small");
+    question.textContent = String(item.question || "").slice(0, 120);
+    article.append(meta, answer, question);
+    fragment.appendChild(article);
+  });
+  nightAnswerList.appendChild(fragment);
+}
+
+function applyPrivateState(state = {}) {
+  privateStateLoaded = true;
+  privateWhispers = Array.isArray(state.whispers) ? state.whispers : [];
+  privateWishes = Array.isArray(state.wishes) ? state.wishes : [];
+  privateAnswers = Array.isArray(state.answers) ? state.answers : [];
+  renderMoods(state.moods);
+  renderWhispers();
+  renderWishes();
+  renderAnswers();
+}
+
+async function loadPrivateState({ force = false, silent = false } = {}) {
   if (privateStateLoaded && !force) return;
   try {
     const state = await apiRequest("/api/state");
-    privateStateLoaded = true;
-    privateWhispers = Array.isArray(state.whispers) ? state.whispers : [];
-    renderMoods(state.moods);
-    renderWhispers();
+    applyPrivateState(state);
   } catch (error) {
-    if (error.message !== "登录已失效") showNote(error.message);
+    if (!silent && error.message !== "登录已失效") showNote(error.message);
   }
 }
 
-function selectPerson(person) {
+function stopStateSync() {
+  if (!stateSyncTimer) return;
+  window.clearInterval(stateSyncTimer);
+  stateSyncTimer = null;
+}
+
+function startStateSync() {
+  stopStateSync();
+  if (!["pulse", "letter"].includes(activeView) || document.hidden) return;
+  loadPrivateState({ force: true });
+  stateSyncTimer = window.setInterval(() => {
+    loadPrivateState({ force: true, silent: true });
+  }, CONFIG.stateSyncIntervalMs);
+}
+
+function readSavedPerson() {
+  try {
+    const saved = window.localStorage.getItem(PERSON_STORAGE_KEY);
+    return saved === "zhennan" ? "zhennan" : "yuya";
+  } catch {
+    return "yuya";
+  }
+}
+
+function selectPerson(person, { persist = true } = {}) {
   if (!personButtons.some((button) => button.dataset.person === person)) return;
   selectedPerson = person;
   personButtons.forEach((button) => {
     button.classList.toggle("is-selected", button.dataset.person === person);
   });
+  currentPersonNameNodes.forEach((node) => {
+    node.textContent = person === "yuya" ? "Yuya" : "Zhennan";
+  });
+  identitySelect.value = person;
   whisperAuthor.value = person;
+  if (persist) {
+    try {
+      window.localStorage.setItem(PERSON_STORAGE_KEY, person);
+    } catch {
+      // Device-local identity is a convenience; the shared state still works without it.
+    }
+  }
 }
 
 async function saveMood(button) {
@@ -809,6 +925,95 @@ async function submitWhisper(event) {
     if (error.message !== "登录已失效") showNote(error.message);
   } finally {
     submitButton.disabled = false;
+  }
+}
+
+async function toggleWish(button) {
+  const item = privateWishes.find((wish) => wish.id === button.dataset.wishId);
+  if (!item) return;
+  button.disabled = true;
+  try {
+    const result = await apiRequest("/api/wishes", {
+      method: "POST",
+      body: JSON.stringify({ action: "toggle", id: item.id, done: !item.done }),
+    });
+    privateWishes = Array.isArray(result.wishes) ? result.wishes : privateWishes;
+    renderWishes();
+    showNote(item.done ? "愿望重新放回清单了" : "又一起完成了一件事");
+  } catch (error) {
+    if (error.message !== "登录已失效") showNote(error.message);
+    button.disabled = false;
+  }
+}
+
+async function submitWish(event) {
+  event.preventDefault();
+  const text = wishInput.value.trim();
+  if (!text || text.length > 80) {
+    showNote("写下 1—80 个字，再加入愿望清单");
+    wishInput.focus();
+    return;
+  }
+  const submitButton = wishForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  try {
+    const result = await apiRequest("/api/wishes", {
+      method: "POST",
+      body: JSON.stringify({ action: "add", text }),
+    });
+    privateWishes = Array.isArray(result.wishes) ? result.wishes : privateWishes;
+    renderWishes();
+    wishInput.value = "";
+    showNote("新的愿望已经收好了");
+  } catch (error) {
+    if (error.message !== "登录已失效") showNote(error.message);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+async function submitNightAnswer(event) {
+  event.preventDefault();
+  const answer = nightAnswerMessage.value.trim();
+  if (!answer || answer.length > 160) {
+    showNote("写下 1—160 个字，再留下回答");
+    nightAnswerMessage.focus();
+    return;
+  }
+  const submitButton = nightAnswerForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  try {
+    const result = await apiRequest("/api/answers", {
+      method: "POST",
+      body: JSON.stringify({
+        author: selectedPerson,
+        question: nightQuestions[questionIndex],
+        answer,
+      }),
+    });
+    privateAnswers.push(result.answer);
+    privateAnswers = privateAnswers.slice(-8);
+    renderAnswers();
+    nightAnswerMessage.value = "";
+    nightAnswerCount.textContent = "0";
+    showNote(`${selectedPerson === "yuya" ? "Yuya" : "Zhennan"} 的回答已经留下`);
+  } catch (error) {
+    if (error.message !== "登录已失效") showNote(error.message);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+async function logout() {
+  logoutButton.disabled = true;
+  try {
+    await apiRequest("/api/logout", { method: "POST" });
+    window.location.replace("/login");
+  } catch (error) {
+    if (error.message !== "登录已失效") {
+      showNote(error.message);
+      logoutButton.disabled = false;
+    }
   }
 }
 
@@ -886,6 +1091,8 @@ function setupEvents() {
     if (activeView === "map") resizeMapCanvas();
   });
 
+  identitySelect.addEventListener("change", () => selectPerson(identitySelect.value));
+  logoutButton.addEventListener("click", logout);
   personButtons.forEach((button) => {
     button.addEventListener("click", () => selectPerson(button.dataset.person));
   });
@@ -897,6 +1104,15 @@ function setupEvents() {
     whisperCount.textContent = String(whisperMessage.value.length);
   });
   whisperForm.addEventListener("submit", submitWhisper);
+  wishForm.addEventListener("submit", submitWish);
+  wishList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-wish-id]");
+    if (button) toggleWish(button);
+  });
+  nightAnswerMessage.addEventListener("input", () => {
+    nightAnswerCount.textContent = String(nightAnswerMessage.value.length);
+  });
+  nightAnswerForm.addEventListener("submit", submitNightAnswer);
   questionShuffle.addEventListener("click", shuffleQuestion);
 
   prevYearButton.addEventListener("click", () => updateMapYear(mapYear - 1));
@@ -944,8 +1160,13 @@ function setupEvents() {
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stopAmbientAnimation();
-    else if (!motionDisabled && activeView === "tonight") startAmbientAnimation();
+    if (document.hidden) {
+      stopAmbientAnimation();
+      stopStateSync();
+    } else {
+      if (!motionDisabled && activeView === "tonight") startAmbientAnimation();
+      if (["pulse", "letter"].includes(activeView)) startStateSync();
+    }
   });
 
   document.documentElement.dataset.starTreeEvents = "ready";
@@ -972,7 +1193,7 @@ function init() {
   setupDateInput();
   setupEvents();
   setupPointerMotion();
-  selectPerson("yuya");
+  selectPerson(readSavedPerson(), { persist: false });
   updateMapYear(mapYear);
   resizeAmbientCanvas();
   updateMotionState();

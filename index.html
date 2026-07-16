@@ -14,7 +14,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23040915'/%3E%3Cpath d='M32 7l4.2 18.8L55 32l-18.8 6.2L32 57l-4.2-18.8L9 32l18.8-6.2L32 7z' fill='%23e9cd87'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="styles.css?v=20260713-7" />
+    <link rel="stylesheet" href="styles.css?v=20260716-1" />
   </head>
   <body>
     <div class="pointer-aura" aria-hidden="true"></div>
@@ -91,6 +91,13 @@
         </div>
 
         <div class="header-actions">
+          <label class="identity-control">
+            <span>我是</span>
+            <select id="identitySelect" aria-label="选择本机使用者身份">
+              <option value="yuya">Yuya</option>
+              <option value="zhennan">Zhennan</option>
+            </select>
+          </label>
           <button
             class="quiet-button motion-toggle"
             id="motionToggle"
@@ -100,6 +107,10 @@
           >
             <span aria-hidden="true">≈</span>
             <span class="motion-toggle__label">动态</span>
+          </button>
+          <button class="quiet-button logout-button" id="logoutButton" type="button">
+            <span aria-hidden="true">↗</span>
+            <span class="logout-button__label">退出</span>
           </button>
         </div>
       </header>
@@ -196,13 +207,21 @@
             <div class="presence-pair">
               <div class="person-status">
                 <span class="person-status__initial">Y</span>
-                <div><strong>Yuya</strong><p data-mood-for="yuya">想你</p></div>
+                <div>
+                  <strong>Yuya</strong>
+                  <p data-mood-for="yuya">想你</p>
+                  <small data-mood-time-for="yuya">还没有更新</small>
+                </div>
               </div>
               <div class="connection-core" aria-hidden="true">
                 <i></i><span>♡</span><b></b>
               </div>
               <div class="person-status person-status--right">
-                <div><strong>Zhennan</strong><p data-mood-for="zhennan">想你</p></div>
+                <div>
+                  <strong>Zhennan</strong>
+                  <p data-mood-for="zhennan">想你</p>
+                  <small data-mood-time-for="zhennan">还没有更新</small>
+                </div>
                 <span class="person-status__initial">Z</span>
               </div>
             </div>
@@ -278,6 +297,24 @@
             <button class="question-shuffle" id="questionShuffle" type="button">
               换一个更靠近彼此的问题 <span>↻</span>
             </button>
+            <form class="question-answer-form" id="nightAnswerForm">
+              <textarea
+                id="nightAnswerMessage"
+                maxlength="160"
+                placeholder="把此刻想到的答案留在这里……"
+                required
+              ></textarea>
+              <div>
+                <small>
+                  <b id="nightAnswerCount">0</b> / 160 ·
+                  <span data-current-person-name>Yuya</span>
+                </small>
+                <button type="submit">留下回答 <span>✦</span></button>
+              </div>
+            </form>
+            <div class="question-answer-list" id="nightAnswerList" aria-live="polite">
+              <p class="question-answer-empty">今晚的第一份回答，还在等你们写下。</p>
+            </div>
           </article>
         </div>
       </section>
@@ -374,13 +411,23 @@
             <article class="promise-card">
               <p class="eyebrow">Things I want with you</p>
               <h3>还想和你做很多事</h3>
-              <ul>
-                <li><span>✓</span> 找一个晚上，什么都不做，只抱着你</li>
-                <li><span>○</span> 一起去看真正没有灯光的星空</li>
-                <li><span>○</span> 把想去的地方一站一站走完</li>
-                <li><span>○</span> 拍很多自然又不完美的合照</li>
-                <li><span>○</span> 一起拥有属于我们的家</li>
+              <ul id="wishList" aria-live="polite">
+                <li class="is-done"><button type="button"><span>✓</span><b>找一个晚上，什么都不做，只抱着你</b></button></li>
+                <li><button type="button"><span>○</span><b>一起去看真正没有灯光的星空</b></button></li>
+                <li><button type="button"><span>○</span><b>把想去的地方一站一站走完</b></button></li>
+                <li><button type="button"><span>○</span><b>拍很多自然又不完美的合照</b></button></li>
+                <li><button type="button"><span>○</span><b>一起拥有属于我们的家</b></button></li>
               </ul>
+              <form class="wish-form" id="wishForm">
+                <input
+                  id="wishInput"
+                  type="text"
+                  maxlength="80"
+                  placeholder="再加一件想一起做的事"
+                  required
+                />
+                <button type="submit" aria-label="添加愿望">＋</button>
+              </form>
             </article>
             <article class="next-date-card">
               <span>距离下一次周年</span>
@@ -442,6 +489,6 @@
     <div class="performance-note" id="performanceNote" role="status" aria-live="polite"></div>
 
     <script src="data/stars.js?v=20260713-2"></script>
-    <script src="script.js?v=20260713-8"></script>
+    <script src="script.js?v=20260716-1"></script>
   </body>
 </html>

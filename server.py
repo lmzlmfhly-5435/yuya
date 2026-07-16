@@ -32,12 +32,51 @@ PUBLIC_FILES = {"login.html", "login.css", "login.js"}
 DENIED_SUFFIXES = {".py", ".md", ".json", ".lock", ".tmp"}
 PEOPLE = {"yuya": "Yuya", "zhennan": "Zhennan"}
 MOODS = {"想你", "开心", "平静", "疲惫", "委屈", "需要抱抱"}
+DEFAULT_WISHES = [
+    {
+        "id": "quiet-night",
+        "text": "找一个晚上，什么都不做，只抱着你",
+        "done": True,
+        "createdAt": None,
+        "updatedAt": None,
+    },
+    {
+        "id": "dark-sky",
+        "text": "一起去看真正没有灯光的星空",
+        "done": False,
+        "createdAt": None,
+        "updatedAt": None,
+    },
+    {
+        "id": "places",
+        "text": "把想去的地方一站一站走完",
+        "done": False,
+        "createdAt": None,
+        "updatedAt": None,
+    },
+    {
+        "id": "photos",
+        "text": "拍很多自然又不完美的合照",
+        "done": False,
+        "createdAt": None,
+        "updatedAt": None,
+    },
+    {
+        "id": "home",
+        "text": "一起拥有属于我们的家",
+        "done": False,
+        "createdAt": None,
+        "updatedAt": None,
+    },
+]
 DEFAULT_STATE = {
     "moods": {
         "yuya": {"mood": "想你", "updatedAt": None},
         "zhennan": {"mood": "想你", "updatedAt": None},
     },
     "whispers": [],
+    "wishes": DEFAULT_WISHES,
+    "answers": [],
 }
 
 
@@ -110,15 +149,33 @@ def read_state() -> dict:
             return json.loads(json.dumps(DEFAULT_STATE))
         moods = raw.get("moods") if isinstance(raw.get("moods"), dict) else {}
         whispers = raw.get("whispers") if isinstance(raw.get("whispers"), list) else []
+        wishes = raw.get("wishes") if isinstance(raw.get("wishes"), list) else DEFAULT_WISHES
+        answers = raw.get("answers") if isinstance(raw.get("answers"), list) else []
         clean = json.loads(json.dumps(DEFAULT_STATE))
         for person in PEOPLE:
             item = moods.get(person, {})
             if item.get("mood") in MOODS:
                 clean["moods"][person] = {
                     "mood": item["mood"],
-                    "updatedAt": item.get("updatedAt"),
+                    "updatedAt": clean_timestamp(item.get("updatedAt")),
                 }
-        clean["whispers"] = [item for item in whispers[-40:] if isinstance(item, dict)]
+        clean["whispers"] = [
+            item
+            for raw_item in whispers[-40:]
+            if (item := clean_whisper(raw_item)) is not None
+        ]
+        clean["wishes"] = [
+            item
+            for raw_item in wishes[:20]
+            if (item := clean_wish(raw_item)) is not None
+        ]
+        if not clean["wishes"]:
+            clean["wishes"] = json.loads(json.dumps(DEFAULT_WISHES))
+        clean["answers"] = [
+            item
+            for raw_item in answers[-30:]
+            if (item := clean_answer(raw_item)) is not None
+        ]
         return clean
 
 
@@ -142,6 +199,72 @@ def clean_message(value: object, max_length: int = 160) -> str | None:
     if any(ord(char) < 32 for char in normalized):
         return None
     return normalized
+
+
+def clean_timestamp(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)) and value > 0:
+        return int(value)
+    return None
+
+
+def clean_item_id(value: object) -> str | None:
+    if not isinstance(value, str) or not 1 <= len(value) <= 64:
+        return None
+    if not all(char.isascii() and (char.isalnum() or char in "-_") for char in value):
+        return None
+    return value
+
+
+def clean_whisper(value: object) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    item_id = clean_item_id(value.get("id"))
+    author = value.get("author")
+    message = clean_message(value.get("message"))
+    if not item_id or author not in PEOPLE or not message:
+        return None
+    return {
+        "id": item_id,
+        "author": author,
+        "message": message,
+        "createdAt": clean_timestamp(value.get("createdAt")),
+    }
+
+
+def clean_wish(value: object) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    item_id = clean_item_id(value.get("id"))
+    text = clean_message(value.get("text"), 80)
+    if not item_id or not text:
+        return None
+    return {
+        "id": item_id,
+        "text": text,
+        "done": value.get("done") is True,
+        "createdAt": clean_timestamp(value.get("createdAt")),
+        "updatedAt": clean_timestamp(value.get("updatedAt")),
+    }
+
+
+def clean_answer(value: object) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    item_id = clean_item_id(value.get("id"))
+    author = value.get("author")
+    question = clean_message(value.get("question"), 120)
+    answer = clean_message(value.get("answer"), 160)
+    if not item_id or author not in PEOPLE or not question or not answer:
+        return None
+    return {
+        "id": item_id,
+        "author": author,
+        "question": question,
+        "answer": answer,
+        "createdAt": clean_timestamp(value.get("createdAt")),
+    }
 
 
 class PrivateSiteHandler(SimpleHTTPRequestHandler):
@@ -195,7 +318,12 @@ class PrivateSiteHandler(SimpleHTTPRequestHandler):
             state = read_state()
             self.send_json(
                 HTTPStatus.OK,
-                {"moods": state["moods"], "whispers": state["whispers"][-12:]},
+                {
+                    "moods": state["moods"],
+                    "whispers": state["whispers"][-12:],
+                    "wishes": state["wishes"],
+                    "answers": state["answers"][-8:],
+                },
             )
             return
         self.serve_private(path)
@@ -212,11 +340,13 @@ class PrivateSiteHandler(SimpleHTTPRequestHandler):
             self.send_json(HTTPStatus.FORBIDDEN, {"error": "请求来源无效"})
             return
         if path == "/api/logout":
-            self.send_response(HTTPStatus.NO_CONTENT)
-            self.send_header(
-                "Set-Cookie",
-                "star_tree_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict",
+            cookie = (
+                "star_tree_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict"
             )
+            if os.environ.get("STAR_TREE_SECURE_COOKIE") == "1":
+                cookie += "; Secure"
+            self.send_response(HTTPStatus.NO_CONTENT)
+            self.send_header("Set-Cookie", cookie)
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             return
@@ -225,6 +355,12 @@ class PrivateSiteHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/whispers":
             self.handle_whisper()
+            return
+        if path == "/api/wishes":
+            self.handle_wish()
+            return
+        if path == "/api/answers":
+            self.handle_answer()
             return
         self.send_json(HTTPStatus.NOT_FOUND, {"error": "没有这个入口"})
 
@@ -313,6 +449,88 @@ class PrivateSiteHandler(SimpleHTTPRequestHandler):
             state["whispers"] = state["whispers"][-40:]
             write_state(state)
         self.send_json(HTTPStatus.CREATED, {"whisper": item})
+
+    def handle_wish(self) -> None:
+        payload = self.read_json(4096)
+        if payload is None:
+            return
+        action = payload.get("action")
+        with STATE_LOCK:
+            state = read_state()
+            if action == "add":
+                text = clean_message(payload.get("text"), 80)
+                if not text:
+                    self.send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "愿望需为 1—80 个有效字符"},
+                    )
+                    return
+                if len(state["wishes"]) >= 20:
+                    self.send_json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "愿望清单最多保存 20 条"},
+                    )
+                    return
+                now = int(time.time())
+                state["wishes"].append(
+                    {
+                        "id": secrets.token_hex(8),
+                        "text": text,
+                        "done": False,
+                        "createdAt": now,
+                        "updatedAt": now,
+                    }
+                )
+                status = HTTPStatus.CREATED
+            elif action == "toggle":
+                wish_id = clean_item_id(payload.get("id"))
+                wish = next(
+                    (item for item in state["wishes"] if item["id"] == wish_id),
+                    None,
+                )
+                if wish is None:
+                    self.send_json(HTTPStatus.NOT_FOUND, {"error": "没有找到这个愿望"})
+                    return
+                requested_done = payload.get("done")
+                wish["done"] = (
+                    requested_done
+                    if isinstance(requested_done, bool)
+                    else not wish["done"]
+                )
+                wish["updatedAt"] = int(time.time())
+                status = HTTPStatus.OK
+            else:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": "愿望操作无效"})
+                return
+            write_state(state)
+        self.send_json(status, {"wishes": state["wishes"]})
+
+    def handle_answer(self) -> None:
+        payload = self.read_json(4096)
+        if payload is None:
+            return
+        author = payload.get("author")
+        question = clean_message(payload.get("question"), 120)
+        answer = clean_message(payload.get("answer"), 160)
+        if author not in PEOPLE or not question or not answer:
+            self.send_json(
+                HTTPStatus.BAD_REQUEST,
+                {"error": "回答需为 1—160 个有效字符"},
+            )
+            return
+        with STATE_LOCK:
+            state = read_state()
+            item = {
+                "id": secrets.token_hex(8),
+                "author": author,
+                "question": question,
+                "answer": answer,
+                "createdAt": int(time.time()),
+            }
+            state["answers"].append(item)
+            state["answers"] = state["answers"][-30:]
+            write_state(state)
+        self.send_json(HTTPStatus.CREATED, {"answer": item})
 
     def read_json(self, maximum: int) -> dict | None:
         if self.headers.get_content_type() != "application/json":
