@@ -1,66 +1,142 @@
 const CONFIG = {
   relationshipStartDate: "2024-09-09",
-  handPoint: { x: 0.666, y: 0.492 },
+  ambientStarCount: { desktop: 42, mobile: 24 },
+  maxCanvasDpr: 1.5,
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-const app = document.querySelector("#app");
-const loader = document.querySelector("#loader");
-const enterButton = document.querySelector("#enterButton");
-const todayButton = document.querySelector("#todayButton");
-const randomButton = document.querySelector("#randomButton");
-const dateInput = document.querySelector("#dateInput");
-const handTarget = document.querySelector("#handTarget");
-const starCanvas = document.querySelector("#starCanvas");
-const starContext = starCanvas.getContext("2d");
-const starLayer = document.querySelector("#starLayer");
-const travelerLayer = document.querySelector("#travelerLayer");
-const projection = document.querySelector("#projection");
-const projectionDay = document.querySelector("#projectionDay");
-const projectionTitle = document.querySelector("#projectionTitle");
-const projectionMessage = document.querySelector("#projectionMessage");
-const projectionDate = document.querySelector("#projectionDate");
-const dayCountNodes = document.querySelectorAll("[data-day-count]");
-
-const starMessages = Array.isArray(window.STAR_MESSAGES) ? window.STAR_MESSAGES : [];
-const messageByDay = new Map(starMessages.map((entry) => [Number(entry.day), entry]));
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const lowPowerDevice =
+  (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+  (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
 
 const startDate = parseLocalDate(CONFIG.relationshipStartDate);
 const totalDays = getRelationshipDayCount();
+const today = dateForDay(totalDays);
+const sourceMessages = Array.isArray(window.STAR_MESSAGES) ? window.STAR_MESSAGES : [];
+const sourceByDay = new Map(sourceMessages.map((entry) => [Number(entry.day), entry]));
 
+const curatedMemories = new Map([
+  [
+    1,
+    {
+      title: "我们从这里开始",
+      message: "从这一天起，我的以后里开始有了你。现在回头看，还是会觉得遇见你真好。",
+      type: "anniversary",
+    },
+  ],
+  [
+    100,
+    {
+      title: "已经习惯身边有你",
+      message: "一百天以后，我已经开始习惯找你、想你，也习惯把今天发生的事先说给你听。",
+      type: "memory",
+    },
+  ],
+  [
+    365,
+    {
+      title: "第一次一起走完四季",
+      message: "春夏秋冬都一起走过了。比起纪念一整年，我更高兴的是下一年身边还是你。",
+      type: "anniversary",
+    },
+  ],
+  [
+    520,
+    {
+      title: "我想一直这样喜欢你",
+      message: "不只是在特别浪漫的时候。我想在每一个普通的早晨和夜晚，都继续这样喜欢你。",
+      type: "letter",
+    },
+  ],
+]);
+
+const prologue = document.querySelector("#prologue");
+const experience = document.querySelector("#experience");
+const enterButton = document.querySelector("#enterButton");
+const brand = document.querySelector(".brand");
+const todayButton = document.querySelector("#todayButton");
+const randomButton = document.querySelector("#randomButton");
+const motionToggle = document.querySelector("#motionToggle");
+const motionToggleLabel = document.querySelector(".motion-toggle__label");
+const viewButtons = [...document.querySelectorAll(".view-nav__button")];
+const views = [...document.querySelectorAll(".view")];
+const dayCountNodes = document.querySelectorAll("[data-day-count]");
+const seasonCountNodes = document.querySelectorAll("[data-season-count]");
+const memoryCountNodes = document.querySelectorAll("[data-memory-count]");
+const nextAnniversaryNodes = document.querySelectorAll("[data-next-anniversary]");
+const todayDateLabel = document.querySelector("#todayDateLabel");
+const tonightMessage = document.querySelector("#tonightMessage");
+const letterDate = document.querySelector("#letterDate");
+const dateInput = document.querySelector("#dateInput");
+const ambientCanvas = document.querySelector("#ambientCanvas");
+const ambientContext = ambientCanvas.getContext("2d", { alpha: true });
+const mapCanvas = document.querySelector("#mapCanvas");
+const mapContext = mapCanvas.getContext("2d", { alpha: true });
+const mapMonths = document.querySelector("#mapMonths");
+const mapEmpty = document.querySelector("#mapEmpty");
+const mapYearLabel = document.querySelector("#mapYearLabel");
+const prevYearButton = document.querySelector("#prevYearButton");
+const nextYearButton = document.querySelector("#nextYearButton");
+const memoryRail = document.querySelector("#memoryRail");
+const memorySheet = document.querySelector("#memorySheet");
+const memoryBackdrop = document.querySelector("#memoryBackdrop");
+const closeMemoryButton = document.querySelector("#closeMemoryButton");
+const previousMemoryButton = document.querySelector("#previousMemoryButton");
+const nextMemoryButton = document.querySelector("#nextMemoryButton");
+const memoryKind = document.querySelector("#memoryKind");
+const memoryIndex = document.querySelector("#memoryIndex");
+const memoryDay = document.querySelector("#memoryDay");
+const memoryTitle = document.querySelector("#memoryTitle");
+const memoryMessage = document.querySelector("#memoryMessage");
+const memoryDate = document.querySelector("#memoryDate");
+const performanceNote = document.querySelector("#performanceNote");
+const sceneImage = document.querySelector("#sceneImage");
+const personButtons = [...document.querySelectorAll("[data-person]")];
+const moodButtons = [...document.querySelectorAll("[data-mood]")];
+const moodNodes = document.querySelectorAll("[data-mood-for]");
+const whisperForm = document.querySelector("#whisperForm");
+const whisperAuthor = document.querySelector("#whisperAuthor");
+const whisperMessage = document.querySelector("#whisperMessage");
+const whisperCount = document.querySelector("#whisperCount");
+const whisperList = document.querySelector("#whisperList");
+const nightQuestion = document.querySelector("#nightQuestion");
+const questionShuffle = document.querySelector("#questionShuffle");
+
+let activeView = "tonight";
 let activeDay = totalDays;
-let hoveredDay = null;
-let canvasWidth = 0;
-let canvasHeight = 0;
-let dpr = 1;
-let animationFrame = null;
-let stars = [];
-let travelRafId = null;
-const handGlowEl = document.querySelector("#handGlow");
+let mapYear = today.getFullYear();
+let mapPoints = [];
+let ambientStars = [];
+let ambientFrameId = null;
+let ambientWidth = 0;
+let ambientHeight = 0;
+let lastAmbientFrame = 0;
+let motionDisabled = prefersReducedMotion || Boolean(lowPowerDevice);
+let noteTimer = null;
+let lastFocusedElement = null;
+let nextShootingStarAt = 2600;
+let shootingStar = null;
+let selectedPerson = "yuya";
+let privateStateLoaded = false;
+let privateWhispers = [];
+let questionIndex = 0;
 
-function getDayFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  const day = parseInt(params.get("day"), 10);
-  if (Number.isFinite(day)) {
-    return Math.min(Math.max(1, day), totalDays);
-  }
-  return null;
-}
-
-function updateURL(day) {
-  const url = new URL(window.location);
-  url.searchParams.set("day", String(day));
-  window.history.replaceState({}, "", url);
-}
+const nightQuestions = [
+  "最近哪一个瞬间，让你特别想抱抱我？",
+  "如果今晚可以立刻见面，你最想先和我做什么？",
+  "有没有一句话，你其实很早就想告诉我？",
+  "最近的我，哪一个小细节让你觉得很可爱？",
+  "如果把我们的今天收藏起来，你会给它起什么名字？",
+  "下一次见面时，你想让我抱你多久？",
+];
 
 function parseLocalDate(value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
 
-function toDateInputValue(date) {
+function dateToInputValue(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -68,24 +144,42 @@ function toDateInputValue(date) {
 }
 
 function getRelationshipDayCount() {
-  const today = new Date();
-  const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const now = new Date();
+  const localToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.max(1, Math.floor((localToday - startDate) / MS_PER_DAY) + 1);
 }
 
 function dateForDay(day) {
   const date = new Date(startDate);
-  date.setDate(startDate.getDate() + day - 1);
+  date.setDate(startDate.getDate() + Number(day) - 1);
   return date;
 }
 
-function dayForDate(dateString) {
-  const date = parseLocalDate(dateString);
-  return Math.floor((date - startDate) / MS_PER_DAY) + 1;
+function dayForDate(date) {
+  const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.floor((normalized - startDate) / MS_PER_DAY) + 1;
+}
+
+function clampDay(day) {
+  return Math.min(totalDays, Math.max(1, Number(day) || 1));
 }
 
 function formatChineseDate(date) {
   return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`;
+}
+
+function formatShortDate(date) {
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+function getDaysUntilNextAnniversary() {
+  let next = new Date(today.getFullYear(), startDate.getMonth(), startDate.getDate());
+  if (next < today) {
+    next = new Date(today.getFullYear() + 1, startDate.getMonth(), startDate.getDate());
+  }
+  return Math.max(0, Math.round((next - today) / MS_PER_DAY));
 }
 
 function seededRandom(seed) {
@@ -97,714 +191,810 @@ function seededRandom(seed) {
   };
 }
 
-function getStarType(day, entry) {
-  if (entry?.type) {
-    return entry.type;
-  }
-
-  if (day === totalDays) {
-    return "letter";
-  }
-
-  if (day === 1 || day % 365 === 0 || day === 520) {
-    return "anniversary";
-  }
-
-  if (day % 100 === 0 || day % 77 === 0) {
-    return "memory";
-  }
-
+function getStarType(day, entry = sourceByDay.get(day)) {
+  if (entry?.type) return entry.type;
+  if (curatedMemories.has(day)) return curatedMemories.get(day).type;
+  if (day === totalDays) return "today";
+  if (day % 365 === 0) return "anniversary";
+  if (day % 100 === 0 || day % 77 === 0) return "memory";
   return "normal";
 }
 
-function buildStars() {
-  const fragment = document.createDocumentFragment();
-  const nextStars = [];
+function getMemory(day) {
+  const safeDay = clampDay(day);
+  const source = sourceByDay.get(safeDay) || {};
+  const curated = curatedMemories.get(safeDay) || {};
+  const type = getStarType(safeDay, source);
+  const hasWrittenContent = Boolean(source.title?.trim() || source.message?.trim());
+  let fallbackTitle = "想起你的某一天";
+  let fallbackMessage = "那天也许没有发生什么大事，但只要那时候身边有你，我就愿意把它留下来。";
 
-  for (let day = 1; day <= totalDays; day += 1) {
-    const random = seededRandom(day * 7283);
-    const entry = messageByDay.get(day);
-    const type = getStarType(day, entry);
-    const hasMessage = !!(entry && (entry.title?.trim() || entry.message?.trim()));
-    const specialBoost = type === "normal" ? 0 : type === "memory" ? 0.22 : 0.42;
-    const x = 4.8 + random() * 90.4;
-    const y = 5.5 + Math.pow(random(), 1.1) * 49;
-    const skyDepth = Math.min(1, Math.max(0, (y - 5.5) / 49));
-    const nearness = Math.min(1, 0.24 + skyDepth * 0.42 + random() * 0.34);
-    const radius = 0.86 + random() * 1.08 + nearness * 0.76 + specialBoost * 0.5;
-    const hotRadius = Math.max(18, radius * 11 + (type === "normal" ? 0 : 10));
-    const companionCount =
-      1 + Math.floor(random() * 3) + (type === "normal" ? 0 : 2) + (hasMessage ? 1 : 0);
-    const companions = [];
-
-    for (let i = 0; i < companionCount; i += 1) {
-      companions.push({
-        angle: random() * Math.PI * 2,
-        distance: 2.4 + random() * (4.8 + nearness * 4.6),
-        radius: 0.18 + random() * 0.34 + nearness * 0.12,
-        alpha: 0.1 + random() * 0.18 + specialBoost * 0.06,
-        hueOffset: -16 + random() * 34,
-        phase: random() * Math.PI * 2,
-      });
-    }
-
-    const star = {
-      day,
-      type,
-      hasMessage,
-      x,
-      y,
-      radius,
-      halo: 12 + radius * (8 + random() * 7),
-      hue: type === "memory" ? 346 + random() * 18 : 39 + nearness * 8 + random() * 12,
-      alpha: 0.42 + random() * 0.34 + specialBoost * 0.2 + nearness * 0.12,
-      nearness,
-      phase: random() * Math.PI * 2,
-      speed: 0.0008 + random() * 0.0014,
-      drift: 0.24 + nearness * 0.92 + random() * 0.52,
-      hotRadius,
-      shapePhase: random() * Math.PI * 2,
-      shapeSpeed: 0.00022 + random() * 0.00046,
-      shapeTilt: random() * Math.PI * 2,
-      shapeRoundness: 0.92 + random() * 0.12,
-      prism: random(),
-      companions,
-    };
-    const hit = document.createElement("button");
-
-    const messageClass = hasMessage ? " star--has-message" : "";
-    hit.className = `star star--${type}${messageClass}`;
-    hit.type = "button";
-    hit.dataset.day = String(day);
-    hit.style.setProperty("--x", `${star.x.toFixed(3)}%`);
-    hit.style.setProperty("--y", `${star.y.toFixed(3)}%`);
-    hit.style.setProperty("--hit", `${(hotRadius * 2).toFixed(1)}px`);
-    hit.setAttribute("aria-label", `摘下第 ${day} 天的星星`);
-    hit.addEventListener("pointerenter", () => {
-      hoveredDay = day;
-    });
-    hit.addEventListener("pointerleave", () => {
-      if (hoveredDay === day) {
-        hoveredDay = null;
-      }
-    });
-    hit.addEventListener("focus", () => {
-      hoveredDay = day;
-    });
-    hit.addEventListener("blur", () => {
-      if (hoveredDay === day) {
-        hoveredDay = null;
-      }
-    });
-    hit.addEventListener("click", () => selectStar(day));
-
-    nextStars.push(star);
-    fragment.appendChild(hit);
+  if (safeDay === totalDays) {
+    fallbackTitle = "今晚也想抱着你";
+    fallbackMessage = "如果你就在我身边，我大概不会说太多话。只会让你靠着我，再把你抱紧一点。";
+  } else if (type === "anniversary") {
+    fallbackTitle = "又陪你走了一圈";
+    fallbackMessage = "比起过了多久，我更在意的是这一路都是和你一起走过来的。";
+  } else if (type === "memory") {
+    fallbackTitle = "我舍不得忘记的那天";
+    fallbackMessage = "有些细节可能会慢慢模糊，但我不会忘记那时喜欢你的感觉。";
   }
 
-  stars = nextStars;
-  starLayer.replaceChildren(fragment);
+  return {
+    day: safeDay,
+    date: dateForDay(safeDay),
+    title: source.title?.trim() || curated.title || fallbackTitle,
+    message: source.message?.trim() || curated.message || fallbackMessage,
+    type,
+    hasWrittenContent,
+  };
 }
 
-function resizeStarCanvas() {
-  if (animationFrame) {
-    window.cancelAnimationFrame(animationFrame);
-    animationFrame = null;
-  }
-
-  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-  canvasWidth = window.innerWidth;
-  canvasHeight = window.innerHeight;
-  starCanvas.width = Math.floor(canvasWidth * dpr);
-  starCanvas.height = Math.floor(canvasHeight * dpr);
-  starCanvas.style.width = `${canvasWidth}px`;
-  starCanvas.style.height = `${canvasHeight}px`;
-  starContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawStars(performance.now());
-}
-
-function drawStars(time = 0) {
-  animationFrame = null;
-  starContext.clearRect(0, 0, canvasWidth, canvasHeight);
-  starContext.save();
-  starContext.globalCompositeOperation = "lighter";
-
-  for (const star of stars) {
-    drawStar(star, time);
-  }
-
-  starContext.restore();
-
-  if (!prefersReducedMotion && canvasWidth > 0 && canvasHeight > 0) {
-    animationFrame = window.requestAnimationFrame(drawStars);
-  }
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function smoothstep01(value) {
-  const t = clamp(value, 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function drawStar(star, time) {
-  const selected = star.day === activeDay;
-  const hovered = star.day === hoveredDay;
-  const special = star.type !== "normal";
-  const hasMessage = star.hasMessage;
-  const attention = selected ? 1 : hovered ? 0.72 : special ? 0.26 : hasMessage ? 0.18 : 0;
-  const breath = 0.5 + Math.sin(time * star.shapeSpeed + star.shapePhase) * 0.5;
-  const bloom = smoothstep01(breath);
-  const twinkle =
-    0.78 +
-    Math.sin(time * star.speed + star.phase) * 0.1 +
-    Math.sin(time * star.speed * 0.37 + star.phase * 1.7) * 0.042 +
-    bloom * 0.08;
-  const driftX = Math.sin(time * 0.00016 + star.phase) * star.drift * star.nearness;
-  const driftY = Math.cos(time * 0.00013 + star.phase) * star.drift * 0.28;
-  const x = (star.x / 100) * canvasWidth + driftX;
-  const y = (star.y / 100) * canvasHeight + driftY;
-  const morph = clamp(bloom * 0.74 + attention * 0.42, 0, 1.18);
-  const alpha = Math.min(0.95, star.alpha * twinkle + attention * 0.16);
-  const angle = star.shapeTilt + Math.sin(time * 0.00007 + star.phase) * 0.18;
-  const roundness = star.shapeRoundness + morph * 0.05;
-  const haloRadius = star.halo * (0.72 + morph * 0.48) * (selected ? 1.34 : hovered ? 1.2 : 1);
-  const coreRadius =
-    Math.max(0.72, star.radius * (0.92 + star.nearness * 0.18 + morph * 0.16)) *
-    (selected ? 1.22 : hovered ? 1.12 : 1);
-
-  drawEllipticGlow(
-    x,
-    y,
-    haloRadius,
-    1.02 + morph * 0.08,
-    roundness,
-    angle,
-    star.hue,
-    alpha * (0.12 + morph * 0.16 + attention * 0.12),
-  );
-  drawCompanionDust(star, x, y, time, alpha, attention);
-
-  if (special || hasMessage || selected || hovered || star.nearness > 0.58) {
-    drawSoftCluster(star, x, y, time, alpha, morph, attention, angle);
-  }
-
-  drawCore(x, y, coreRadius, star.hue, alpha, angle, roundness, morph);
-
-  if (selected || hovered || special || (hasMessage && star.prism > 0.34) || star.prism > 0.985) {
-    drawFineDiffraction(x, y, coreRadius, star.hue, alpha, angle, star.prism, attention);
-  }
-}
-
-function drawEllipticGlow(x, y, radius, scaleX, scaleY, angle, hue, alpha) {
-  if (alpha <= 0.002 || radius <= 0) return;
-
-  const gradient = starContext.createRadialGradient(0, 0, 0, 0, 0, radius);
-  gradient.addColorStop(0, `hsla(${hue}, 100%, 94%, ${alpha})`);
-  gradient.addColorStop(0.18, `hsla(${hue}, 100%, 82%, ${alpha * 0.28})`);
-  gradient.addColorStop(0.48, `hsla(${hue + 48}, 72%, 70%, ${alpha * 0.075})`);
-  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-
-  starContext.save();
-  starContext.translate(x, y);
-  starContext.rotate(angle);
-  starContext.scale(scaleX, scaleY);
-  starContext.fillStyle = gradient;
-  starContext.beginPath();
-  starContext.arc(0, 0, radius, 0, Math.PI * 2);
-  starContext.fill();
-  starContext.restore();
-}
-
-function drawCore(x, y, radius, hue, alpha, angle, roundness, morph) {
-  const coreRadius = Math.max(radius, 0.52);
-  const gradient = starContext.createRadialGradient(
-    -coreRadius * 0.24,
-    -coreRadius * 0.22,
-    0,
-    0,
-    0,
-    coreRadius * (1.4 + morph * 0.28),
-  );
-  gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-  gradient.addColorStop(0.24, `hsla(${hue}, 100%, 91%, ${alpha * 0.8})`);
-  gradient.addColorStop(0.54, `hsla(${hue}, 96%, 72%, ${alpha * 0.22})`);
-  gradient.addColorStop(1, `hsla(${hue}, 100%, 62%, 0)`);
-
-  starContext.save();
-  starContext.translate(x, y);
-  starContext.rotate(angle);
-  starContext.scale(1 + morph * 0.04, roundness);
-  starContext.fillStyle = gradient;
-  starContext.beginPath();
-  starContext.arc(0, 0, coreRadius, 0, Math.PI * 2);
-  starContext.fill();
-  starContext.restore();
-}
-
-function drawCompanionDust(star, x, y, time, alpha, attention) {
-  const dustAlpha = alpha * (0.62 + attention * 0.34);
-
-  for (const dust of star.companions) {
-    const pulse = 0.62 + Math.sin(time * star.speed * 0.72 + dust.phase) * 0.22;
-    const drift = Math.sin(time * 0.00008 + dust.phase) * 0.38;
-    const angle = star.shapeTilt + dust.angle + drift;
-    const distance = dust.distance * (0.76 + star.nearness * 0.34);
-    const dustX = x + Math.cos(angle) * distance;
-    const dustY = y + Math.sin(angle) * distance * 0.66;
-    const radius = dust.radius * (0.78 + pulse * 0.28 + attention * 0.22);
-    const speckAlpha = clamp(dustAlpha * dust.alpha * pulse, 0, 0.34);
-
-    if (speckAlpha <= 0.01) continue;
-
-    starContext.fillStyle = `hsla(${star.hue + dust.hueOffset}, 92%, 88%, ${speckAlpha})`;
-    starContext.beginPath();
-    starContext.arc(dustX, dustY, radius, 0, Math.PI * 2);
-    starContext.fill();
-  }
-}
-
-function drawSoftCluster(star, x, y, time, alpha, morph, attention, baseAngle) {
-  const lobeCount = attention > 0.6 ? 4 : 3;
-
-  for (let i = 0; i < lobeCount; i += 1) {
-    const phase = star.shapePhase + i * 1.94;
-    const pulse = 0.46 + Math.sin(time * star.shapeSpeed * (0.72 + i * 0.13) + phase) * 0.18;
-    const angle = baseAngle + i * 2.08 + Math.sin(time * 0.0001 + phase) * 0.18;
-    const distance = star.radius * (2.5 + i * 0.72 + morph * 2.1 + star.nearness * 1.2);
-    const lobeX = x + Math.cos(angle) * distance;
-    const lobeY = y + Math.sin(angle) * distance * 0.56;
-    const radius = star.radius * (4.2 + i * 0.8 + morph * 2.8 + star.nearness * 1.6);
-    const lobeAlpha = alpha * (0.026 + morph * 0.032 + attention * 0.028) * pulse;
-
-    drawEllipticGlow(
-      lobeX,
-      lobeY,
-      radius,
-      0.96 + morph * 0.08,
-      0.88 + morph * 0.08,
-      angle + Math.PI * 0.18,
-      star.hue + i * 8,
-      lobeAlpha,
-    );
-  }
-}
-
-function drawFineDiffraction(x, y, radius, hue, alpha, angle, prism, attention) {
-  const rayAlpha = alpha * (0.12 + attention * 0.18);
-  if (rayAlpha <= 0.018) return;
-
-  const longRay = radius * (2.8 + prism * 1.4 + attention * 1.8);
-  const shortRay = radius * (1.8 + prism * 0.9 + attention * 1.1);
-  const rays = [
-    { angle, length: longRay, width: 0.5 + attention * 0.16, alpha: rayAlpha * 0.78 },
+function getKindLabel(type) {
+  return (
     {
-      angle: angle + Math.PI / 2,
-      length: shortRay,
-      width: 0.38 + attention * 0.12,
-      alpha: rayAlpha * 0.44,
-    },
-  ];
+      normal: "A day with you",
+      memory: "I remember this",
+      anniversary: "Another year with you",
+      letter: "Only for you",
+      future: "For our future",
+      today: "Tonight, I miss you",
+    }[type] || "Only for you"
+  );
+}
 
-  for (const ray of rays) {
-    starContext.save();
-    starContext.translate(x, y);
-    starContext.rotate(ray.angle);
-    const gradient = starContext.createLinearGradient(-ray.length, 0, ray.length, 0);
-    gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-    gradient.addColorStop(0.44, `hsla(${hue}, 94%, 88%, ${ray.alpha * 0.22})`);
-    gradient.addColorStop(0.5, `rgba(255, 255, 255, ${ray.alpha})`);
-    gradient.addColorStop(0.56, `hsla(${hue + 22}, 94%, 88%, ${ray.alpha * 0.22})`);
-    gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-    starContext.strokeStyle = gradient;
-    starContext.lineWidth = ray.width;
-    starContext.lineCap = "round";
-    starContext.shadowColor = `hsla(${hue}, 100%, 86%, ${ray.alpha * 0.55})`;
-    starContext.shadowBlur = radius * 1.8;
-    starContext.beginPath();
-    starContext.moveTo(-ray.length, 0);
-    starContext.lineTo(ray.length, 0);
-    starContext.stroke();
-    starContext.restore();
+function updateURL(day) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("day", String(day));
+  window.history.replaceState({}, "", url);
+}
+
+function getURLDay() {
+  const day = Number(new URLSearchParams(window.location.search).get("day"));
+  return Number.isFinite(day) && day >= 1 && day <= totalDays ? day : null;
+}
+
+function showNote(message) {
+  window.clearTimeout(noteTimer);
+  performanceNote.textContent = message;
+  performanceNote.classList.add("is-visible");
+  noteTimer = window.setTimeout(() => performanceNote.classList.remove("is-visible"), 2600);
+}
+
+function updateMotionState({ announce = false } = {}) {
+  document.body.classList.toggle("is-motion-off", motionDisabled);
+  document.body.classList.toggle("is-lite", Boolean(lowPowerDevice));
+  motionToggle.setAttribute("aria-pressed", String(!motionDisabled));
+  motionToggleLabel.textContent = motionDisabled ? "静态" : "动态";
+
+  if (motionDisabled) {
+    stopAmbientAnimation();
+    drawAmbientStars(0);
+  } else {
+    startAmbientAnimation();
+  }
+
+  if (announce) {
+    showNote(motionDisabled ? "已切换为静态节能模式" : "已开启轻量动态效果");
   }
 }
 
-function getStarScreenPoint(star) {
-  return {
-    x: (star.x / 100) * canvasWidth,
-    y: (star.y / 100) * canvasHeight,
-  };
+function createAmbientStars() {
+  const count = window.innerWidth <= 680
+    ? CONFIG.ambientStarCount.mobile
+    : CONFIG.ambientStarCount.desktop;
+  const random = seededRandom(92471);
+  ambientStars = Array.from({ length: count }, (_, index) => ({
+    x: 0.04 + random() * 0.9,
+    y: 0.04 + Math.pow(random(), 1.25) * 0.58,
+    radius: 0.45 + random() * 1.15,
+    alpha: 0.18 + random() * 0.5,
+    speed: 0.00045 + random() * 0.0008,
+    phase: random() * Math.PI * 2,
+    accent: index % 11 === 0,
+  }));
 }
 
-function getStarCopy(day) {
-  const entry = messageByDay.get(day) || {};
-  const date = entry.date ? parseLocalDate(entry.date) : dateForDay(day);
-  const title = entry.title?.trim() || defaultTitleForDay(day);
-  const message = entry.message?.trim() || defaultMessageForDay(day);
-
-  return {
-    date,
-    title,
-    message,
-  };
+function resizeAmbientCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, motionDisabled ? 1 : CONFIG.maxCanvasDpr);
+  ambientWidth = window.innerWidth;
+  ambientHeight = window.innerHeight;
+  ambientCanvas.width = Math.floor(ambientWidth * dpr);
+  ambientCanvas.height = Math.floor(ambientHeight * dpr);
+  ambientCanvas.style.width = `${ambientWidth}px`;
+  ambientCanvas.style.height = `${ambientHeight}px`;
+  ambientContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+  createAmbientStars();
+  drawAmbientStars(performance.now());
 }
 
-function defaultTitleForDay(day) {
-  if (day === 1) {
-    return "第一颗星，从遇见你开始";
-  }
+function drawAmbientStars(time) {
+  ambientContext.clearRect(0, 0, ambientWidth, ambientHeight);
+  ambientContext.save();
+  ambientContext.globalCompositeOperation = "lighter";
 
-  if (day === totalDays) {
-    return "今天的星星，刚刚亮起来";
-  }
+  for (const star of ambientStars) {
+    const twinkle = motionDisabled ? 1 : 0.78 + Math.sin(time * star.speed + star.phase) * 0.22;
+    const x = star.x * ambientWidth;
+    const y = star.y * ambientHeight;
+    const alpha = star.alpha * twinkle;
 
-  if (day % 365 === 0) {
-    return `第 ${day} 天，我们绕过了一整圈太阳`;
-  }
-
-  if (day === 520) {
-    return "第 520 天，宇宙偷偷替我告白";
-  }
-
-  return `第 ${day} 天的星光`;
-}
-
-function defaultMessageForDay(day) {
-  if (day === totalDays) {
-    return "这里以后可以写今天想对她说的话。现在先让这颗星替你亮着。";
-  }
-
-  if (day === 1) {
-    return "这一天的内容还可以慢慢补上，但它会一直是整片星空的起点。";
-  }
-
-  return "这颗星星还没有写下正式的话，但它已经属于我们。";
-}
-
-function selectStar(day, options = {}) {
-  const shouldAnimate = options.animate !== false;
-  const nextDay = Math.min(Math.max(1, day), totalDays);
-  const previous = starLayer.querySelector(".star.is-active");
-  const next = starLayer.querySelector(`[data-day="${nextDay}"]`);
-  const copy = getStarCopy(nextDay);
-  const dateValue = toDateInputValue(copy.date);
-
-  activeDay = nextDay;
-  previous?.classList.remove("is-active");
-  next?.classList.add("is-active");
-
-  projectionDay.textContent = `第 ${nextDay} 天`;
-  projectionTitle.textContent = copy.title;
-  projectionMessage.textContent = copy.message;
-  projectionDate.dateTime = dateValue;
-  projectionDate.textContent = formatChineseDate(copy.date);
-  dateInput.value = dateValue;
-  projection.classList.add("is-visible");
-  updateURL(nextDay);
-
-  if (shouldAnimate) {
-    const selectedStar = stars[nextDay - 1];
-    if (selectedStar) {
-      animateStarToHand(selectedStar);
+    if (star.accent) {
+      const glow = ambientContext.createRadialGradient(x, y, 0, x, y, 13);
+      glow.addColorStop(0, `rgba(255, 242, 195, ${alpha * 0.42})`);
+      glow.addColorStop(1, "rgba(255, 242, 195, 0)");
+      ambientContext.fillStyle = glow;
+      ambientContext.beginPath();
+      ambientContext.arc(x, y, 13, 0, Math.PI * 2);
+      ambientContext.fill();
     }
-  }
-}
 
-function animateStarToHand(star) {
-  if (travelRafId) {
-    cancelAnimationFrame(travelRafId);
-    travelRafId = null;
+    ambientContext.fillStyle = `rgba(255, 247, 218, ${alpha})`;
+    ambientContext.beginPath();
+    ambientContext.arc(x, y, star.radius, 0, Math.PI * 2);
+    ambientContext.fill();
   }
 
-  const oldCanvas = travelerLayer.querySelector(".travel-canvas");
-  if (oldCanvas) oldCanvas.remove();
-  const oldFly = travelerLayer.querySelector(".fly-star");
-  if (oldFly) oldFly.remove();
-  const oldBloom = travelerLayer.querySelector(".arrival-bloom");
-  if (oldBloom) oldBloom.remove();
-  handGlowEl.classList.remove("is-anticipating", "is-catching");
-  app.classList.remove("is-star-traveling", "is-catching");
-
-  const from = getStarScreenPoint(star);
-  const to = getHandPoint();
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  const side = dx >= 0 ? 1 : -1;
-  const lift = Math.min(300, Math.max(120, dist * 0.22));
-
-  const cp1 = {
-    x: from.x + dx * 0.2 - side * dist * 0.08,
-    y: from.y + dy * 0.08 - lift,
-  };
-  const cp2 = {
-    x: from.x + dx * 0.66 + side * dist * 0.06,
-    y: from.y + dy * 0.68 - lift * 0.18,
-  };
-
-  function bez(t, p0, p1, p2, p3) {
-    const u = 1 - t;
-    return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
-  }
-
-  function posAt(t) {
-    return {
-      x: bez(t, from.x, cp1.x, cp2.x, to.x),
-      y: bez(t, from.y, cp1.y, cp2.y, to.y),
+  if (!motionDisabled && time >= nextShootingStarAt && !shootingStar) {
+    const random = seededRandom(Math.floor(time));
+    shootingStar = {
+      startedAt: time,
+      duration: 760 + random() * 280,
+      x: ambientWidth * (0.18 + random() * 0.5),
+      y: ambientHeight * (0.08 + random() * 0.2),
+      length: 70 + random() * 54,
     };
   }
 
-  function smoothstep(t) {
-    return t * t * (3 - 2 * t);
+  if (shootingStar) {
+    const progress = (time - shootingStar.startedAt) / shootingStar.duration;
+    if (progress >= 1) {
+      shootingStar = null;
+      nextShootingStarAt = time + 5400 + Math.random() * 5200;
+    } else if (progress >= 0) {
+      const travel = progress * Math.min(ambientWidth * 0.28, 320);
+      const x = shootingStar.x + travel;
+      const y = shootingStar.y + travel * 0.36;
+      const alpha = Math.sin(progress * Math.PI) * 0.72;
+      const gradient = ambientContext.createLinearGradient(
+        x - shootingStar.length,
+        y - shootingStar.length * 0.36,
+        x,
+        y,
+      );
+      gradient.addColorStop(0, "rgba(255, 241, 190, 0)");
+      gradient.addColorStop(1, `rgba(255, 244, 207, ${alpha})`);
+      ambientContext.strokeStyle = gradient;
+      ambientContext.lineWidth = 1.15;
+      ambientContext.beginPath();
+      ambientContext.moveTo(x - shootingStar.length, y - shootingStar.length * 0.36);
+      ambientContext.lineTo(x, y);
+      ambientContext.stroke();
+    }
   }
 
-  const scaleKeyframes = [
-    { at: 0, val: 0.08 },
-    { at: 0.18, val: 0.22 },
-    { at: 0.46, val: 0.72 },
-    { at: 0.68, val: 1.08 },
-    { at: 0.84, val: 0.78 },
-    { at: 0.96, val: 0.38 },
-    { at: 1, val: 0.08 },
-  ];
+  ambientContext.restore();
+}
 
-  function scaleAt(t) {
-    for (let i = 0; i < scaleKeyframes.length - 1; i++) {
-      const a = scaleKeyframes[i];
-      const b = scaleKeyframes[i + 1];
-      if (t >= a.at && t <= b.at) {
-        const r = smoothstep((t - a.at) / (b.at - a.at));
-        return a.val + (b.val - a.val) * r;
-      }
-    }
-    return scaleKeyframes[scaleKeyframes.length - 1].val;
+function ambientLoop(time) {
+  ambientFrameId = window.requestAnimationFrame(ambientLoop);
+  if (time - lastAmbientFrame < 40) return;
+  if (document.hidden || activeView !== "tonight" || memorySheet.classList.contains("is-open")) return;
+  lastAmbientFrame = time;
+  drawAmbientStars(time);
+}
+
+function startAmbientAnimation() {
+  if (motionDisabled || ambientFrameId) return;
+  ambientFrameId = window.requestAnimationFrame(ambientLoop);
+}
+
+function stopAmbientAnimation() {
+  if (!ambientFrameId) return;
+  window.cancelAnimationFrame(ambientFrameId);
+  ambientFrameId = null;
+}
+
+function switchView(target) {
+  if (!target || target === activeView) return;
+  activeView = target;
+
+  views.forEach((view) => view.classList.toggle("is-active", view.dataset.view === target));
+  viewButtons.forEach((button) => {
+    const selected = button.dataset.target === target;
+    button.classList.toggle("is-active", selected);
+    if (selected) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+
+  document.body.classList.toggle("view-map", target === "map");
+  document.body.classList.toggle("view-memories", target === "memories");
+  document.body.classList.toggle("view-pulse", target === "pulse");
+  document.body.classList.toggle("view-letter", target === "letter");
+
+  if (target === "map") {
+    window.requestAnimationFrame(resizeMapCanvas);
   }
 
-  const flyEl = document.createElement("div");
-  flyEl.className = "fly-star";
-  flyEl.style.left = from.x + "px";
-  flyEl.style.top = from.y + "px";
-
-  const tailEl = document.createElement("div");
-  tailEl.className = "fly-star__tail";
-  flyEl.appendChild(tailEl);
-
-  const coreEl = document.createElement("div");
-  coreEl.className = "fly-star__core";
-  flyEl.appendChild(coreEl);
-
-  const auraEl = document.createElement("div");
-  auraEl.className = "fly-star__aura";
-  flyEl.appendChild(auraEl);
-
-  travelerLayer.appendChild(flyEl);
-
-  const dprLocal = Math.min(window.devicePixelRatio || 1, 2.5);
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const canvas = document.createElement("canvas");
-  canvas.className = "travel-canvas";
-  canvas.width = Math.floor(w * dprLocal);
-  canvas.height = Math.floor(h * dprLocal);
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dprLocal, 0, 0, dprLocal, 0, 0);
-  travelerLayer.appendChild(canvas);
-
-  const DURATION = 1650;
-  const trail = [];
-  const MAX_TRAIL = 34;
-  const t0 = performance.now();
-
-  let wasLarge = false;
-  app.classList.add("is-star-traveling");
-
-  function drawTrailEntry(x, y, r, alpha, angle) {
-    if (r <= 0.3 || alpha <= 0.005) return;
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    g.addColorStop(0, `rgba(255, 249, 220, ${alpha * 0.44})`);
-    g.addColorStop(0.28, `rgba(246, 214, 123, ${alpha * 0.2})`);
-    g.addColorStop(0.62, `rgba(132, 225, 216, ${alpha * 0.06})`);
-    g.addColorStop(1, "rgba(132, 225, 216, 0)");
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.scale(2.15, 0.72);
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  if (target === "memories") {
+    buildMemoryRail();
   }
 
-  function frame(now) {
-    const t = Math.min(1, (now - t0) / DURATION);
-    const pathT = smoothstep(t);
-    const pos = posAt(pathT);
-    const previous = posAt(Math.max(0, pathT - 0.018));
-    const angle = Math.atan2(pos.y - previous.y, pos.x - previous.x);
-    const sc = scaleAt(t);
-    const baseR = 9;
-    const r = baseR * sc;
-    const nearFocus = Math.max(0, Math.sin(Math.PI * Math.min(1, t * 1.08)));
-    const blur = 0.08 + Math.max(0, sc - 0.9) * 0.2 + nearFocus * 0.12;
-    const opacity = t < 0.1 ? 0.6 + t * 3.4 : t > 0.94 ? Math.max(0, 1 - (t - 0.94) / 0.06) : 0.96;
+  if (target === "pulse") {
+    loadPrivateState({ force: true });
+  }
 
-    trail.push({ x: pos.x, y: pos.y, r: r * (0.9 + nearFocus * 0.18), angle, ts: now });
-    while (trail.length > MAX_TRAIL) trail.shift();
+  if (target === "tonight" && !motionDisabled) startAmbientAnimation();
+  else if (target !== "tonight") drawAmbientStars(performance.now());
+}
 
-    ctx.clearRect(0, 0, w, h);
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
+function getMapRangeForYear(year) {
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+  const rangeStart = year === startDate.getFullYear() && startDate > yearStart ? startDate : yearStart;
+  const rangeEnd = year === today.getFullYear() && today < yearEnd ? today : yearEnd;
+  if (rangeStart > today || rangeEnd < startDate) return null;
+  return { start: rangeStart, end: rangeEnd };
+}
 
-    for (let i = 0; i < trail.length; i++) {
-      const tr = trail[i];
-      const age = (now - tr.ts) / 620;
-      if (age >= 1) continue;
-      const ta = (1 - age) * 0.26;
-      const trR = tr.r * (1 - age * 0.58);
-      drawTrailEntry(tr.x, tr.y, trR, ta, tr.angle);
-    }
-    ctx.restore();
+const monthCenters = [
+  [0.12, 0.2], [0.37, 0.16], [0.63, 0.19], [0.87, 0.16],
+  [0.15, 0.49], [0.4, 0.45], [0.64, 0.5], [0.87, 0.46],
+  [0.12, 0.79], [0.37, 0.75], [0.63, 0.8], [0.87, 0.75],
+];
 
-    flyEl.style.left = pos.x + "px";
-    flyEl.style.top = pos.y + "px";
-    flyEl.style.transform = `translate(-50%, -50%) rotate(${angle}rad) scale(${sc})`;
-    flyEl.style.setProperty("--fly-blur", `${blur.toFixed(2)}px`);
-    flyEl.style.setProperty("--fly-opacity", opacity.toFixed(3));
+function buildMapPoints(width, height) {
+  const range = getMapRangeForYear(mapYear);
+  mapPoints = [];
+  if (!range) return;
 
-    const isLarge = sc > 1.42;
-    if (isLarge !== wasLarge) {
-      wasLarge = isLarge;
-      if (isLarge) {
-        flyEl.classList.add("is-large");
-      } else {
-        flyEl.classList.remove("is-large");
-      }
-    }
-
-    if (t >= 0.52 && !handGlowEl.classList.contains("is-anticipating")) {
-      handGlowEl.classList.add("is-anticipating");
-    }
-    if (t >= 0.74 && !handGlowEl.classList.contains("is-catching")) {
-      handGlowEl.classList.remove("is-anticipating");
-      handGlowEl.classList.add("is-catching");
-      app.classList.add("is-catching");
-    }
-
-    if (t < 1) {
-      travelRafId = requestAnimationFrame(frame);
-    } else {
-      travelRafId = null;
-      flyEl.remove();
-      canvas.remove();
-      const bloom = document.createElement("div");
-      bloom.className = "arrival-bloom";
-      bloom.style.left = to.x + "px";
-      bloom.style.top = to.y + "px";
-      travelerLayer.appendChild(bloom);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => bloom.classList.add("is-burst"));
+  const date = new Date(range.start);
+  while (date <= range.end) {
+    const day = dayForDate(date);
+    if (day >= 1 && day <= totalDays) {
+      const month = date.getMonth();
+      const center = monthCenters[month];
+      const random = seededRandom(day * 9283);
+      const angle = random() * Math.PI * 2;
+      const distance = 18 + Math.sqrt(random()) * Math.min(width / 11, height / 8);
+      const x = center[0] * width + Math.cos(angle) * distance;
+      const y = center[1] * height + Math.sin(angle) * distance * 0.64;
+      const type = getStarType(day);
+      mapPoints.push({
+        day,
+        month,
+        x,
+        y,
+        type,
+        hasContent: sourceByDay.has(day) || curatedMemories.has(day),
+        radius: type === "normal" ? 1.1 + random() * 0.65 : 2.2 + random() * 0.7,
       });
-      setTimeout(() => {
-        bloom.remove();
-        handGlowEl.classList.remove("is-catching");
-        app.classList.remove("is-star-traveling", "is-catching");
-      }, 820);
     }
+    date.setDate(date.getDate() + 1);
   }
-
-  travelRafId = requestAnimationFrame(frame);
 }
 
-function getHandPoint() {
-  if (!handTarget) {
-    return {
-      x: window.innerWidth * CONFIG.handPoint.x,
-      y: window.innerHeight * CONFIG.handPoint.y,
-    };
+function drawMap() {
+  const rect = mapCanvas.getBoundingClientRect();
+  const width = rect.width;
+  const height = rect.height;
+  if (!width || !height) return;
+
+  mapContext.clearRect(0, 0, width, height);
+  mapContext.save();
+
+  const byMonth = Array.from({ length: 12 }, () => []);
+  mapPoints.forEach((point) => byMonth[point.month].push(point));
+
+  mapContext.lineWidth = 0.65;
+  for (const points of byMonth) {
+    if (points.length < 2) continue;
+    mapContext.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) mapContext.moveTo(point.x, point.y);
+      else mapContext.lineTo(point.x, point.y);
+    });
+    mapContext.strokeStyle = "rgba(158, 181, 205, 0.12)";
+    mapContext.stroke();
   }
 
-  const rect = handTarget.getBoundingClientRect();
+  mapContext.globalCompositeOperation = "lighter";
+  for (const point of mapPoints) {
+    const special = point.type !== "normal" || point.hasContent;
+    const alpha = special ? 0.86 : 0.38;
 
-  return {
-    x: rect.left + rect.width * 0.5,
-    y: rect.top + rect.height * 0.5,
-  };
+    if (special) {
+      const glow = mapContext.createRadialGradient(point.x, point.y, 0, point.x, point.y, 15);
+      glow.addColorStop(0, `rgba(255, 232, 162, ${alpha * 0.42})`);
+      glow.addColorStop(1, "rgba(255, 232, 162, 0)");
+      mapContext.fillStyle = glow;
+      mapContext.beginPath();
+      mapContext.arc(point.x, point.y, 15, 0, Math.PI * 2);
+      mapContext.fill();
+    }
+
+    mapContext.fillStyle = special
+      ? `rgba(255, 239, 190, ${alpha})`
+      : `rgba(201, 218, 232, ${alpha})`;
+    mapContext.beginPath();
+    mapContext.arc(point.x, point.y, point.radius, 0, Math.PI * 2);
+    mapContext.fill();
+  }
+
+  mapContext.restore();
+  mapEmpty.hidden = mapPoints.length > 0;
 }
 
-function positionHandGlow() {
-  const point = getHandPoint();
-  document.documentElement.style.setProperty("--hand-x", `${point.x}px`);
-  document.documentElement.style.setProperty("--hand-y", `${point.y}px`);
+function resizeMapCanvas() {
+  const rect = mapCanvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, motionDisabled ? 1 : CONFIG.maxCanvasDpr);
+  mapCanvas.width = Math.floor(rect.width * dpr);
+  mapCanvas.height = Math.floor(rect.height * dpr);
+  mapContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+  buildMapPoints(rect.width, rect.height);
+  drawMap();
+  buildMonthMarkers();
+}
+
+function buildMonthMarkers() {
+  mapMonths.replaceChildren();
+  const range = getMapRangeForYear(mapYear);
+  const currentMonth = mapYear === today.getFullYear() ? today.getMonth() : -1;
+
+  monthCenters.forEach((center, month) => {
+    const monthStart = new Date(mapYear, month, 1);
+    const monthEnd = new Date(mapYear, month + 1, 0);
+    const inRange = range && monthEnd >= range.start && monthStart <= range.end;
+    if (!inRange) return;
+
+    const button = document.createElement("button");
+    button.className = "month-marker";
+    if (month === currentMonth) button.classList.add("is-current");
+    button.type = "button";
+    button.style.left = `${center[0] * 100}%`;
+    button.style.top = `${center[1] * 100}%`;
+    button.textContent = `${String(month + 1).padStart(2, "0")} 月`;
+    button.setAttribute("aria-label", `打开 ${mapYear} 年 ${month + 1} 月的一颗星`);
+    button.addEventListener("click", () => openMonthMemory(month));
+    mapMonths.appendChild(button);
+  });
+}
+
+function openMonthMemory(month) {
+  const candidates = mapPoints.filter((point) => point.month === month);
+  if (!candidates.length) return;
+  const meaningful = candidates.find((point) => point.hasContent || point.type !== "normal");
+  const chosen = meaningful || candidates[Math.floor(candidates.length / 2)];
+  openMemory(chosen.day);
+}
+
+function updateMapYear(nextYear) {
+  const minYear = startDate.getFullYear();
+  const maxYear = today.getFullYear();
+  mapYear = Math.min(maxYear, Math.max(minYear, nextYear));
+  mapYearLabel.textContent = String(mapYear);
+  prevYearButton.disabled = mapYear <= minYear;
+  nextYearButton.disabled = mapYear >= maxYear;
+  resizeMapCanvas();
+}
+
+function getChapterDays() {
+  const writtenDays = sourceMessages
+    .filter((entry) => entry.title?.trim() || entry.message?.trim())
+    .map((entry) => Number(entry.day));
+  return [...new Set([1, 100, 365, 520, totalDays, ...writtenDays])]
+    .filter((day) => day >= 1 && day <= totalDays)
+    .sort((a, b) => a - b);
+}
+
+function buildMemoryRail() {
+  if (memoryRail.childElementCount) return;
+  const fragment = document.createDocumentFragment();
+
+  getChapterDays().forEach((day, index) => {
+    const memory = getMemory(day);
+    const button = document.createElement("button");
+    button.className = "chapter-card";
+    button.type = "button";
+    button.setAttribute("aria-label", `打开第 ${day} 天：${memory.title}`);
+
+    const number = document.createElement("span");
+    number.className = "chapter-card__number";
+    number.textContent = `CHAPTER ${String(index + 1).padStart(2, "0")}`;
+
+    const star = document.createElement("span");
+    star.className = "chapter-card__star";
+    star.setAttribute("aria-hidden", "true");
+    star.textContent = "✦";
+
+    const content = document.createElement("div");
+    content.className = "chapter-card__content";
+
+    const title = document.createElement("h3");
+    title.textContent = memory.title;
+
+    const message = document.createElement("p");
+    message.textContent = memory.message;
+
+    const time = document.createElement("time");
+    time.dateTime = dateToInputValue(memory.date);
+    time.textContent = `DAY ${String(day).padStart(3, "0")} · ${formatShortDate(memory.date)}`;
+
+    content.append(title, message, time);
+    button.append(number, star, content);
+    button.addEventListener("click", () => openMemory(day));
+    fragment.appendChild(button);
+  });
+
+  memoryRail.appendChild(fragment);
+}
+
+function openMemory(day) {
+  activeDay = clampDay(day);
+  const memory = getMemory(activeDay);
+  lastFocusedElement = document.activeElement;
+
+  memoryKind.textContent = getKindLabel(memory.type);
+  memoryIndex.textContent = `${String(activeDay).padStart(3, "0")} / ${String(totalDays).padStart(3, "0")}`;
+  memoryDay.textContent = `第 ${activeDay} 天`;
+  memoryTitle.textContent = memory.title;
+  memoryMessage.textContent = memory.message;
+  memoryDate.dateTime = dateToInputValue(memory.date);
+  memoryDate.textContent = formatChineseDate(memory.date);
+  previousMemoryButton.disabled = activeDay <= 1;
+  nextMemoryButton.disabled = activeDay >= totalDays;
+
+  memorySheet.classList.add("is-open");
+  memorySheet.setAttribute("aria-hidden", "false");
+  updateURL(activeDay);
+  stopAmbientAnimation();
+  window.setTimeout(() => closeMemoryButton.focus(), 80);
+}
+
+function closeMemory() {
+  memorySheet.classList.remove("is-open");
+  memorySheet.setAttribute("aria-hidden", "true");
+  if (!motionDisabled && activeView === "tonight") startAmbientAnimation();
+  if (lastFocusedElement instanceof HTMLElement) lastFocusedElement.focus();
 }
 
 function setupDateInput() {
   dateInput.min = CONFIG.relationshipStartDate;
-  dateInput.max = toDateInputValue(dateForDay(totalDays));
-  dateInput.value = toDateInputValue(dateForDay(totalDays));
+  dateInput.max = dateToInputValue(today);
+  dateInput.value = dateToInputValue(today);
   dateInput.addEventListener("change", () => {
-    const day = dayForDate(dateInput.value);
-    selectStar(day);
+    const selectedDate = parseLocalDate(dateInput.value);
+    const day = dayForDate(selectedDate);
+    if (day < 1 || day > totalDays) return;
+    updateMapYear(selectedDate.getFullYear());
+    openMemory(day);
   });
 }
 
-function updateDayCounters() {
-  dayCountNodes.forEach((node) => {
-    node.textContent = String(totalDays);
+function relativeTime(timestamp) {
+  if (!timestamp) return "刚刚";
+  const date = new Date(Number(timestamp) * 1000);
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return "刚刚";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`;
+  return `${date.getMonth() + 1} 月 ${date.getDate()} 日`;
+}
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
   });
+  if (response.status === 401) {
+    window.location.assign("/login");
+    throw new Error("登录已失效");
+  }
+  const result = response.status === 204 ? {} : await response.json();
+  if (!response.ok) throw new Error(result.error || "暂时没有连上我们的星空");
+  return result;
+}
+
+function renderMoods(moods = {}) {
+  moodNodes.forEach((node) => {
+    const value = moods[node.dataset.moodFor]?.mood;
+    node.textContent = value || "还没留下心情";
+  });
+}
+
+function renderWhispers() {
+  whisperList.replaceChildren();
+  if (!privateWhispers.length) {
+    const empty = document.createElement("p");
+    empty.className = "whisper-empty";
+    empty.textContent = "第一句话，还在等我们写下。";
+    whisperList.appendChild(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  [...privateWhispers].reverse().forEach((item) => {
+    const article = document.createElement("article");
+    article.className = "whisper-item";
+
+    const star = document.createElement("span");
+    star.className = "whisper-item__star";
+    star.setAttribute("aria-hidden", "true");
+    star.textContent = "✦";
+
+    const copy = document.createElement("div");
+    const author = document.createElement("strong");
+    author.textContent = item.author === "yuya" ? "YUYA" : "ZHENNAN";
+    const message = document.createElement("p");
+    message.textContent = String(item.message || "").slice(0, 160);
+    copy.append(author, message);
+
+    const time = document.createElement("time");
+    time.textContent = relativeTime(item.createdAt);
+    article.append(star, copy, time);
+    fragment.appendChild(article);
+  });
+  whisperList.appendChild(fragment);
+}
+
+async function loadPrivateState({ force = false } = {}) {
+  if (privateStateLoaded && !force) return;
+  try {
+    const state = await apiRequest("/api/state");
+    privateStateLoaded = true;
+    privateWhispers = Array.isArray(state.whispers) ? state.whispers : [];
+    renderMoods(state.moods);
+    renderWhispers();
+  } catch (error) {
+    if (error.message !== "登录已失效") showNote(error.message);
+  }
+}
+
+function selectPerson(person) {
+  if (!personButtons.some((button) => button.dataset.person === person)) return;
+  selectedPerson = person;
+  personButtons.forEach((button) => {
+    button.classList.toggle("is-selected", button.dataset.person === person);
+  });
+  whisperAuthor.value = person;
+}
+
+async function saveMood(button) {
+  const mood = button.dataset.mood;
+  moodButtons.forEach((item) => { item.disabled = true; });
+  try {
+    const result = await apiRequest("/api/mood", {
+      method: "POST",
+      body: JSON.stringify({ person: selectedPerson, mood }),
+    });
+    renderMoods(result.moods);
+    moodButtons.forEach((item) => {
+      item.classList.toggle("is-selected", item.dataset.mood === mood);
+    });
+    showNote(`${selectedPerson === "yuya" ? "Yuya" : "Zhennan"} 的心情已经点亮`);
+  } catch (error) {
+    if (error.message !== "登录已失效") showNote(error.message);
+  } finally {
+    moodButtons.forEach((item) => { item.disabled = false; });
+  }
+}
+
+async function submitWhisper(event) {
+  event.preventDefault();
+  const message = whisperMessage.value.trim();
+  if (!message || message.length > 160) {
+    showNote("写下 1—160 个字，再把它变成星星");
+    whisperMessage.focus();
+    return;
+  }
+  const submitButton = whisperForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  try {
+    const result = await apiRequest("/api/whispers", {
+      method: "POST",
+      body: JSON.stringify({ author: whisperAuthor.value, message }),
+    });
+    privateWhispers.push(result.whisper);
+    privateWhispers = privateWhispers.slice(-12);
+    renderWhispers();
+    whisperMessage.value = "";
+    whisperCount.textContent = "0";
+    showNote("这句话已经变成星星了");
+  } catch (error) {
+    if (error.message !== "登录已失效") showNote(error.message);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+function shuffleQuestion() {
+  let next = Math.floor(Math.random() * nightQuestions.length);
+  if (next === questionIndex) next = (next + 1) % nightQuestions.length;
+  questionIndex = next;
+  nightQuestion.classList.remove("is-changing");
+  void nightQuestion.offsetWidth;
+  nightQuestion.textContent = `“${nightQuestions[questionIndex]}”`;
+  nightQuestion.classList.add("is-changing");
+}
+
+function setupPointerMotion() {
+  if (!window.matchMedia("(pointer: fine)").matches || lowPowerDevice) return;
+  let frame = null;
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight / 2;
+  window.addEventListener("pointermove", (event) => {
+    x = event.clientX;
+    y = event.clientY;
+    if (frame) return;
+    frame = window.requestAnimationFrame(() => {
+      frame = null;
+      document.documentElement.style.setProperty("--pointer-x", `${x}px`);
+      document.documentElement.style.setProperty("--pointer-y", `${y}px`);
+      if (!motionDisabled && sceneImage) {
+        const sceneX = ((x / window.innerWidth) - 0.5) * -0.7;
+        const sceneY = ((y / window.innerHeight) - 0.5) * -0.45;
+        document.documentElement.style.setProperty("--scene-x", `${sceneX}%`);
+        document.documentElement.style.setProperty("--scene-y", `${sceneY}%`);
+      }
+    });
+  }, { passive: true });
 }
 
 function setupEvents() {
   enterButton.addEventListener("click", () => {
-    app.classList.add("is-entered");
-    const urlDay = getDayFromURL();
-    selectStar(urlDay || activeDay, { animate: false });
-  });
-
-  todayButton.addEventListener("click", () => selectStar(totalDays));
-  randomButton.addEventListener("click", () => {
-    const filledDays = starMessages.filter(
-      (entry) => entry.title?.trim() || entry.message?.trim(),
-    );
-    if (filledDays.length > 0) {
-      const entry = filledDays[Math.floor(Math.random() * filledDays.length)];
-      selectStar(entry.day);
-    } else {
-      const day = Math.floor(Math.random() * totalDays) + 1;
-      selectStar(day);
+    const urlDay = getURLDay();
+    if (motionDisabled) {
+      document.body.classList.add("is-entered");
+      if (urlDay) openMemory(urlDay);
+      return;
     }
+    document.body.classList.add("is-entering");
+    window.setTimeout(() => {
+      document.body.classList.add("is-entered");
+      if (urlDay) openMemory(urlDay);
+    }, 510);
+    window.setTimeout(() => document.body.classList.remove("is-entering"), 1260);
   });
 
-  window.addEventListener("resize", () => {
-    resizeStarCanvas();
-    positionHandGlow();
+  brand.addEventListener("click", (event) => {
+    event.preventDefault();
+    switchView("tonight");
   });
+
+  viewButtons.forEach((button) => {
+    button.addEventListener("click", () => switchView(button.dataset.target));
+  });
+
+  todayButton.addEventListener("click", () => openMemory(totalDays));
+  randomButton.addEventListener("click", () => {
+    const choices = getChapterDays();
+    const currentIndex = choices.indexOf(activeDay);
+    let index = Math.floor(Math.random() * choices.length);
+    if (choices.length > 1 && index === currentIndex) index = (index + 1) % choices.length;
+    openMemory(choices[index]);
+  });
+
+  motionToggle.addEventListener("click", () => {
+    motionDisabled = !motionDisabled;
+    updateMotionState({ announce: true });
+    resizeAmbientCanvas();
+    if (activeView === "map") resizeMapCanvas();
+  });
+
+  personButtons.forEach((button) => {
+    button.addEventListener("click", () => selectPerson(button.dataset.person));
+  });
+  moodButtons.forEach((button) => {
+    button.addEventListener("click", () => saveMood(button));
+  });
+  whisperAuthor.addEventListener("change", () => selectPerson(whisperAuthor.value));
+  whisperMessage.addEventListener("input", () => {
+    whisperCount.textContent = String(whisperMessage.value.length);
+  });
+  whisperForm.addEventListener("submit", submitWhisper);
+  questionShuffle.addEventListener("click", shuffleQuestion);
+
+  prevYearButton.addEventListener("click", () => updateMapYear(mapYear - 1));
+  nextYearButton.addEventListener("click", () => updateMapYear(mapYear + 1));
+
+  mapCanvas.addEventListener("click", (event) => {
+    const rect = mapCanvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    let nearest = null;
+    let nearestDistance = Infinity;
+
+    for (const point of mapPoints) {
+      const distance = Math.hypot(point.x - x, point.y - y);
+      if (distance < nearestDistance) {
+        nearest = point;
+        nearestDistance = distance;
+      }
+    }
+
+    if (nearest && nearestDistance <= 24) openMemory(nearest.day);
+  });
+
+  closeMemoryButton.addEventListener("click", closeMemory);
+  memoryBackdrop.addEventListener("click", closeMemory);
+  previousMemoryButton.addEventListener("click", () => {
+    if (activeDay > 1) openMemory(activeDay - 1);
+  });
+  nextMemoryButton.addEventListener("click", () => {
+    if (activeDay < totalDays) openMemory(activeDay + 1);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && memorySheet.classList.contains("is-open")) closeMemory();
+  });
+
+  let resizeFrame = null;
+  window.addEventListener("resize", () => {
+    if (resizeFrame) window.cancelAnimationFrame(resizeFrame);
+    resizeFrame = window.requestAnimationFrame(() => {
+      resizeFrame = null;
+      resizeAmbientCanvas();
+      if (activeView === "map") resizeMapCanvas();
+    });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopAmbientAnimation();
+    else if (!motionDisabled && activeView === "tonight") startAmbientAnimation();
+  });
+
+  document.documentElement.dataset.starTreeEvents = "ready";
 }
 
 function init() {
-  requestAnimationFrame(hideLoader);
+  dayCountNodes.forEach((node) => {
+    node.textContent = String(totalDays);
+  });
+  seasonCountNodes.forEach((node) => {
+    node.textContent = String(Math.max(1, Math.ceil(totalDays / 90)));
+  });
+  memoryCountNodes.forEach((node) => {
+    node.textContent = String(getChapterDays().length);
+  });
+  nextAnniversaryNodes.forEach((node) => {
+    node.textContent = String(getDaysUntilNextAnniversary());
+  });
+  todayDateLabel.textContent = formatShortDate(today);
+  tonightMessage.textContent = getMemory(totalDays).message;
+  letterDate.textContent = formatChineseDate(today);
+  mapYearLabel.textContent = String(mapYear);
 
-  updateDayCounters();
-  buildStars();
-  resizeStarCanvas();
   setupDateInput();
   setupEvents();
-  positionHandGlow();
-  selectStar(totalDays, { animate: false });
+  setupPointerMotion();
+  selectPerson("yuya");
+  updateMapYear(mapYear);
+  resizeAmbientCanvas();
+  updateMotionState();
 
-  if (prefersReducedMotion) {
-    drawStars(0);
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("unlock")) {
+    const cleanURL = new URL(window.location.href);
+    cleanURL.searchParams.delete("unlock");
+    window.history.replaceState({}, "", cleanURL);
   }
-}
+  if (params.get("enter") === "1") {
+    document.body.classList.add("is-entered");
+  }
+  if (["map", "memories", "pulse", "letter"].includes(params.get("view"))) {
+    switchView(params.get("view"));
+  }
+  if (params.get("enter") === "1" && getURLDay()) {
+    window.setTimeout(() => openMemory(getURLDay()), motionDisabled ? 0 : 300);
+  }
 
-function hideLoader() {
-  if (loader) {
-    loader.classList.add("is-hidden");
+  if (lowPowerDevice && !prefersReducedMotion) {
+    window.setTimeout(() => showNote("已自动启用轻量模式，可在右上角开启动态"), 900);
   }
 }
 

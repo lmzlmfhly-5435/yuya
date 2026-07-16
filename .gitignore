@@ -2,3 +2,6 @@
 .git/.DS_Store
 preview-*.png
 assets/meadow-girl.png
+__pycache__/
+*.pyc
+data/private_state.json

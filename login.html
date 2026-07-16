@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#050816" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>这里只有你和我 · 私密入口</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23050816'/%3E%3Cpath d='M32 7l4.2 18.8L55 32l-18.8 6.2L32 57l-4.2-18.8L9 32l18.8-6.2L32 7z' fill='%23e9cd87'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="login.css?v=20260713-1" />
+  </head>
+  <body>
+    <div class="night" aria-hidden="true">
+      <div class="aurora aurora--one"></div>
+      <div class="aurora aurora--two"></div>
+      <div class="stars" id="loginStars"></div>
+      <div class="orbit"><span></span><i></i></div>
+    </div>
+
+    <main class="login-shell">
+      <section class="login-card" aria-labelledby="loginTitle">
+        <div class="seal" aria-hidden="true"><span>Y</span><i></i><span>Z</span></div>
+        <p class="eyebrow">PRIVATE CONSTELLATION</p>
+        <h1 id="loginTitle">回到我们的<br />小小宇宙</h1>
+        <p class="intro">这扇门后没有别人。输入只有我们知道的那串数字。</p>
+
+        <form id="loginForm" novalidate>
+          <label for="password">我们的密码</label>
+          <div class="password-field">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              inputmode="numeric"
+              pattern="[0-9]{8}"
+              maxlength="8"
+              autocomplete="current-password"
+              aria-describedby="loginStatus"
+              required
+            />
+            <span class="password-dots" aria-hidden="true">••••••••</span>
+          </div>
+          <button type="submit">
+            <span>打开这片星夜</span>
+            <i aria-hidden="true">✦</i>
+          </button>
+          <p class="status" id="loginStatus" role="status" aria-live="polite">密码不会保存在浏览器里</p>
+        </form>
+
+        <footer><span>YUYA</span><i></i><span>ZHENNAN</span></footer>
+      </section>
+    </main>
+    <script src="login.js?v=20260713-3"></script>
+  </body>
+</html>

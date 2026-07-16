@@ -1,0 +1,79 @@
+:root {
+  color-scheme: dark;
+  --night: #050816;
+  --ink: #f4f0e7;
+  --soft: rgba(244, 240, 231, 0.58);
+  --gold: #e9cd87;
+  --ease: cubic-bezier(0.16, 0.8, 0.24, 1);
+  font-family: "Songti SC", "STSong", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+html, body { min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100svh; overflow: hidden; background: var(--night); color: var(--ink); }
+button, input { font: inherit; }
+
+.night, .night::after { position: fixed; inset: 0; }
+.night {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 115%, rgba(170, 107, 98, 0.2), transparent 40%),
+    radial-gradient(circle at 18% 18%, rgba(67, 98, 141, 0.24), transparent 32%),
+    linear-gradient(145deg, #090f23, #03050e 62%);
+}
+.night::after {
+  content: "";
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+}
+.aurora { position: absolute; width: 56vw; height: 56vw; border-radius: 50%; filter: blur(100px); opacity: 0.15; }
+.aurora--one { left: -24vw; top: 8vh; background: #557eab; animation: driftOne 13s ease-in-out infinite alternate; }
+.aurora--two { right: -28vw; bottom: -26vw; background: #b37268; animation: driftTwo 17s ease-in-out infinite alternate; }
+.stars { position: absolute; inset: 0; }
+.stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff5cf; box-shadow: 0 0 10px #fff0ae; animation: twinkle var(--speed) ease-in-out infinite alternate; }
+.orbit { position: absolute; left: 50%; top: 50%; width: min(72vw, 720px); aspect-ratio: 1; border: 1px solid rgba(233, 205, 135, 0.09); border-radius: 50%; transform: translate(-50%, -50%) rotate(-18deg); }
+.orbit::before, .orbit::after { content: ""; position: absolute; border: 1px solid rgba(255, 255, 255, 0.045); border-radius: 50%; }
+.orbit::before { inset: 14%; }
+.orbit::after { inset: 30%; }
+.orbit span, .orbit i { position: absolute; border-radius: 50%; background: var(--gold); box-shadow: 0 0 24px var(--gold); }
+.orbit span { left: 12%; top: 18%; width: 5px; height: 5px; }
+.orbit i { right: 17%; bottom: 22%; width: 3px; height: 3px; }
+
+.login-shell { position: relative; z-index: 2; display: grid; min-height: 100svh; place-items: center; padding: 24px; }
+.login-card { width: min(480px, 100%); padding: clamp(34px, 5vw, 58px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 32px; background: rgba(5, 10, 23, 0.7); box-shadow: 0 40px 120px rgba(0, 0, 0, 0.5); text-align: center; backdrop-filter: blur(18px); animation: arrive 900ms var(--ease) both; }
+.seal { display: inline-flex; align-items: center; gap: 9px; width: 72px; height: 36px; justify-content: center; border: 1px solid rgba(233, 205, 135, 0.25); border-radius: 999px; color: var(--gold); font: 700 9px/1 Inter, system-ui, sans-serif; letter-spacing: .08em; }
+.seal i { width: 3px; height: 3px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+.eyebrow { margin: 24px 0 0; color: var(--gold); font: 700 9px/1.5 Inter, system-ui, sans-serif; letter-spacing: .22em; }
+h1 { margin: 18px 0; font-size: clamp(44px, 7vw, 66px); font-weight: 400; letter-spacing: -.055em; line-height: 1.05; }
+.intro { max-width: 330px; margin: 0 auto; color: var(--soft); font-size: 14px; line-height: 1.8; }
+form { display: grid; gap: 12px; margin-top: 32px; }
+label { color: rgba(244, 240, 231, .46); font: 600 9px/1 Inter, system-ui, sans-serif; letter-spacing: .16em; text-align: left; }
+.password-field { position: relative; }
+input { width: 100%; height: 58px; padding: 0 20px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 15px; outline: none; background: rgba(255, 255, 255, .045); color: transparent; caret-color: var(--gold); font: 18px/1 Inter, system-ui, sans-serif; letter-spacing: .4em; transition: border-color 180ms ease, box-shadow 180ms ease; }
+input:focus { border-color: rgba(233, 205, 135, .48); box-shadow: 0 0 0 4px rgba(233, 205, 135, .06); }
+.password-dots { position: absolute; left: 20px; top: 50%; color: rgba(244, 240, 231, .7); font: 20px/1 Inter, system-ui, sans-serif; letter-spacing: .38em; opacity: 0; pointer-events: none; transform: translateY(-50%); }
+.password-field.has-value .password-dots { opacity: 1; }
+button { display: flex; height: 56px; align-items: center; justify-content: space-between; margin-top: 5px; padding: 0 9px 0 21px; border: 0; border-radius: 999px; background: var(--gold); color: #211a0d; cursor: pointer; font: 700 13px/1 Inter, "PingFang SC", sans-serif; letter-spacing: .06em; transition: transform 220ms var(--ease), background 180ms ease; }
+button:hover { background: #fff1bd; transform: translateY(-2px); }
+button:disabled { cursor: wait; opacity: .62; transform: none; }
+button i { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 50%; background: rgba(29, 21, 8, .1); font-style: normal; }
+.status { min-height: 18px; margin: 2px 0 0; color: rgba(244, 240, 231, .36); font: 500 9px/1.6 Inter, "PingFang SC", sans-serif; letter-spacing: .05em; }
+.status.is-error { color: #e6a59b; }
+footer { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 26px; color: rgba(244, 240, 231, .26); font: 600 7px/1 Inter, system-ui, sans-serif; letter-spacing: .2em; }
+footer i { width: 34px; height: 1px; background: rgba(233, 205, 135, .22); }
+body.is-unlocking .login-card { opacity: 0; transform: scale(.96); transition: opacity 550ms ease, transform 650ms var(--ease); }
+body.is-unlocking .orbit { transform: translate(-50%, -50%) rotate(28deg) scale(1.16); transition: transform 900ms var(--ease); }
+
+@keyframes arrive { from { opacity: 0; transform: translateY(20px) scale(.98); } }
+@keyframes twinkle { to { opacity: .16; transform: scale(.7); } }
+@keyframes driftOne { to { transform: translate(10vw, -4vh); } }
+@keyframes driftTwo { to { transform: translate(-8vw, -8vh); } }
+
+@media (max-width: 520px) {
+  .login-card { padding: 34px 24px; border-radius: 26px; backdrop-filter: none; }
+  .orbit { width: 130vw; }
+  h1 { font-size: 47px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}

@@ -5,108 +5,443 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="一片会随着相爱天数生长的星空，每一天都是一颗可以摘下的星。"
+      content="只属于我们两个人的星夜、回忆和没说完的话。"
     />
-    <title>Wang,yuya&zhennan</title>
+    <meta name="theme-color" content="#040915" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>Yuya &amp; Zhennan · 这里只有你和我</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23090f1f'/%3E%3Cpath d='M32 8l5.5 17.8L56 32l-18.5 6.2L32 56l-5.5-17.8L8 32l18.5-6.2L32 8z' fill='%23f6d67b'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23040915'/%3E%3Cpath d='M32 7l4.2 18.8L55 32l-18.8 6.2L32 57l-4.2-18.8L9 32l18.8-6.2L32 7z' fill='%23e9cd87'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260713-7" />
   </head>
   <body>
-    <div class="loader" id="loader" aria-label="正在加载星空">
-      <div class="loader__spark" aria-hidden="true">✦</div>
-      <p>正在铺开星空…</p>
+    <div class="pointer-aura" aria-hidden="true"></div>
+    <div class="transition-curtain" aria-hidden="true">
+      <i></i><i></i><i></i>
+      <span>✦</span>
+    </div>
+    <div class="scene" aria-hidden="true">
+      <picture class="scene__picture">
+        <source
+          media="(max-width: 680px)"
+          srcset="assets/star-tree-couple-mobile.jpg"
+        />
+        <img
+          id="sceneImage"
+          src="assets/star-tree-couple-desktop.jpg"
+          width="1672"
+          height="941"
+          alt=""
+          decoding="async"
+          fetchpriority="high"
+          loading="eager"
+        />
+      </picture>
+      <div class="scene__grade"></div>
+      <div class="scene__mist"></div>
+      <canvas class="ambient-stars" id="ambientCanvas"></canvas>
+      <div class="scene__grain"></div>
     </div>
 
-    <main class="app-shell" id="app">
-      <section class="intro" id="intro" aria-label="开场">
-        <div class="intro__cosmos" aria-hidden="true"></div>
-        <div class="intro__shade" aria-hidden="true"></div>
-        <div class="intro__copy">
-          <p class="intro__eyebrow">A sky only for you</p>
-          <h1>Wang,yuya&zhennan</h1>
-          <p>
-            我把我们在一起的每一天，都藏进了一颗星星里。你伸手的那一颗，
-            就是我那天想对你说的话。
-          </p>
-          <button class="intro__button" id="enterButton" type="button">
-            <span aria-hidden="true">✦</span>
-            进入我们的星空
+    <section class="prologue" id="prologue" aria-labelledby="prologueTitle">
+      <div class="prologue__content">
+        <p class="eyebrow">Just you and me</p>
+        <h1 id="prologueTitle">这里，只有<br />你和我</h1>
+        <p class="prologue__lead">
+          你靠在我肩上的时候，世界就安静了。<br />我想把那些舍不得忘记的瞬间，都留在这里。
+        </p>
+        <div class="prologue__coordinates" aria-hidden="true">
+          <span><i></i> 初见</span>
+          <b></b>
+          <span><i></i> 相爱</span>
+          <b></b>
+          <span><i></i> 现在</span>
+        </div>
+        <button
+          class="primary-button"
+          id="enterButton"
+          type="button"
+        >
+          <span>来，陪我待一会儿</span>
+          <span class="button-star" aria-hidden="true">✦</span>
+        </button>
+      </div>
+      <div class="prologue__signature" aria-hidden="true">
+        <span>Yuya &amp; Zhennan</span>
+        <i></i>
+        <span>Only us · Since 2024.09.09</span>
+      </div>
+    </section>
+
+    <main class="experience" id="experience" aria-label="我们的星夜">
+      <header class="site-header">
+        <a class="brand" href="#tonight" aria-label="回到今夜">
+          <span class="brand__mark" aria-hidden="true">✦</span>
+          <span class="brand__copy">
+            <strong>Yuya &amp; Zhennan</strong>
+            <small>Only you can see this</small>
+          </span>
+        </a>
+
+        <div class="time-mark" aria-live="polite">
+          <span class="time-mark__dot"></span>
+          <span>相爱第 <strong data-day-count>1</strong> 天</span>
+        </div>
+
+        <div class="header-actions">
+          <button
+            class="quiet-button motion-toggle"
+            id="motionToggle"
+            type="button"
+            aria-pressed="false"
+            aria-label="切换动态效果"
+          >
+            <span aria-hidden="true">≈</span>
+            <span class="motion-toggle__label">动态</span>
           </button>
         </div>
-      </section>
+      </header>
 
-      <section class="sky" aria-label="我们的星空">
-        <div class="sky__backdrop" aria-hidden="true"></div>
-        <div class="sky__nebula" aria-hidden="true"></div>
-        <div class="sky__horizon" aria-hidden="true"></div>
-        <div class="landscape" aria-hidden="true">
-          <div class="landscape__ridge landscape__ridge--far"></div>
-          <div class="landscape__ridge landscape__ridge--near"></div>
-          <div class="landscape__meadow"></div>
-        </div>
-        <div class="girl" id="girlFigure" aria-hidden="true">
-          <div class="girl__aura"></div>
-          <div class="girl__hair"></div>
-          <div class="girl__head"></div>
-          <div class="girl__body"></div>
-          <div class="girl__skirt"></div>
-          <div class="girl__arm girl__arm--upper"></div>
-          <div class="girl__arm girl__arm--fore"></div>
-          <div class="girl__hand" id="handTarget"></div>
-        </div>
-        <div class="sky__depth" aria-hidden="true"></div>
-        <div class="sky__film" aria-hidden="true"></div>
-        <div class="sky__weather" aria-hidden="true"></div>
-        <canvas class="star-canvas" id="starCanvas" aria-hidden="true"></canvas>
-        <div class="sky__foreground" aria-hidden="true"></div>
-
-        <header class="topbar" aria-label="星空状态">
-          <a class="brand" href="#app" aria-label="回到开场">
-            <span aria-hidden="true">✦</span>
-            <strong>Wang,yuya&zhennan</strong>
-          </a>
-          <div class="day-counter" aria-live="polite">
-            我们已经在一起
-            <strong data-day-count>661</strong>
-            天
-          </div>
-          <div class="sky-actions" aria-label="选择星星">
-            <button id="todayButton" type="button" aria-label="摘今天的星星">
-              今日
-            </button>
-            <button id="randomButton" type="button" aria-label="随机摘一颗星星">
-              随机
-            </button>
-            <label class="date-jump" aria-label="按日期寻找星星">
-              <span>日期</span>
-              <input id="dateInput" type="date" />
-            </label>
-          </div>
-        </header>
-
-        <div class="star-layer" id="starLayer" aria-label="可以摘下的星星"></div>
-        <div class="traveler-layer" id="travelerLayer" aria-hidden="true"></div>
-        <div class="hand-glow" id="handGlow" aria-hidden="true"></div>
-
-        <article class="projection" id="projection" aria-live="polite">
-          <span class="projection__day" id="projectionDay">第 661 天</span>
-          <h2 id="projectionTitle">今晚，先把这颗星给你</h2>
-          <p id="projectionMessage">
-            这颗星星还没有写下正式的话，但它已经属于我们。
+      <section class="view view--tonight is-active" id="tonight" data-view="tonight">
+        <div class="tonight-copy">
+          <p class="eyebrow">Only for you · <span id="todayDateLabel"></span></p>
+          <h2>又想你了，<br />也更想抱你</h2>
+          <p id="tonightMessage">
+            如果你就在我身边，我大概不会说太多话。只会让你靠着我，再把你抱紧一点。
           </p>
-          <time id="projectionDate" datetime=""></time>
-        </article>
+          <div class="tonight-actions">
+            <button class="primary-button primary-button--small" id="todayButton" type="button">
+              <span>看看今晚写给你的话</span>
+              <span class="button-star" aria-hidden="true">✦</span>
+            </button>
+            <button class="text-button" id="randomButton" type="button">
+              翻一段我们的从前
+              <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
 
-        <p class="quiet-note">
-          这片星空会每天多一颗，直到很久很久以后。
+        <div class="today-orbit" aria-hidden="true">
+          <span class="today-orbit__ring"></span>
+          <span class="today-orbit__star">✦</span>
+          <span class="today-orbit__label">DAY <b data-day-count>1</b></span>
+        </div>
+
+        <p class="scene-caption">
+          <span></span>
+          我喜欢你靠在我肩上，也喜欢你什么都不说地陪着我
         </p>
+
+        <div class="tonight-fragments" aria-label="今晚的小事">
+          <article>
+            <span>01 / TOUCH</span>
+            <strong>想让你再靠近一点</strong>
+          </article>
+          <article>
+            <span>02 / VOICE</span>
+            <strong>想听你叫我的名字</strong>
+          </article>
+          <article>
+            <span>03 / LATER</span>
+            <strong>想和你一起慢慢睡着</strong>
+          </article>
+        </div>
       </section>
+
+      <section class="view view--map" id="starMap" data-view="map" aria-labelledby="mapTitle">
+        <div class="map-heading">
+          <p class="eyebrow">Every night we shared</p>
+          <h2 id="mapTitle">我们一起走过的夜</h2>
+          <p>想你、见你、拌嘴、和好，还有那些赖在一起什么都不做的日子，全都在这里。</p>
+        </div>
+
+        <div class="map-stage">
+          <canvas id="mapCanvas" aria-label="按日期排列的星图"></canvas>
+          <div class="map-empty" id="mapEmpty" hidden>这一年还没有星星。</div>
+          <div class="map-months" id="mapMonths" aria-label="按月份浏览"></div>
+          <div class="map-hint" aria-hidden="true">
+            <span class="map-hint__cursor">◎</span>
+            随便点一颗，看看那天的我们
+          </div>
+        </div>
+
+        <div class="map-controls" aria-label="选择年份和日期">
+          <button class="map-year-button" id="prevYearButton" type="button" aria-label="上一年">←</button>
+          <strong id="mapYearLabel">2024</strong>
+          <button class="map-year-button" id="nextYearButton" type="button" aria-label="下一年">→</button>
+          <label class="date-search">
+            <span>跳到日期</span>
+            <input id="dateInput" type="date" />
+          </label>
+        </div>
+      </section>
+
+      <section
+        class="view view--pulse"
+        id="pulse"
+        data-view="pulse"
+        aria-labelledby="pulseTitle"
+      >
+        <div class="pulse-heading">
+          <p class="eyebrow">Right here, right now</p>
+          <h2 id="pulseTitle">此刻的你，<br />离我并不远</h2>
+          <p>留下现在的心情，或者一句突然想说的话。下次打开这里，我们都会看见。</p>
+        </div>
+
+        <div class="pulse-layout">
+          <article class="presence-card constellation-card">
+            <div class="module-label"><span>01</span><b>我们的心情轨道</b></div>
+            <div class="presence-pair">
+              <div class="person-status">
+                <span class="person-status__initial">Y</span>
+                <div><strong>Yuya</strong><p data-mood-for="yuya">想你</p></div>
+              </div>
+              <div class="connection-core" aria-hidden="true">
+                <i></i><span>♡</span><b></b>
+              </div>
+              <div class="person-status person-status--right">
+                <div><strong>Zhennan</strong><p data-mood-for="zhennan">想你</p></div>
+                <span class="person-status__initial">Z</span>
+              </div>
+            </div>
+
+            <div class="checkin-panel">
+              <div class="person-switch" aria-label="选择是谁">
+                <button class="is-selected" type="button" data-person="yuya">我是 Yuya</button>
+                <button type="button" data-person="zhennan">我是 Zhennan</button>
+              </div>
+              <p>现在是什么心情？</p>
+              <div class="mood-options">
+                <button type="button" data-mood="想你">想你</button>
+                <button type="button" data-mood="开心">开心</button>
+                <button type="button" data-mood="平静">平静</button>
+                <button type="button" data-mood="疲惫">疲惫</button>
+                <button type="button" data-mood="委屈">委屈</button>
+                <button type="button" data-mood="需要抱抱">需要抱抱</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="whisper-module constellation-card">
+            <div class="module-label"><span>02</span><b>只给你看的星空留言</b></div>
+            <form id="whisperForm">
+              <label>
+                <span>是谁在说</span>
+                <select id="whisperAuthor" name="author">
+                  <option value="yuya">Yuya</option>
+                  <option value="zhennan">Zhennan</option>
+                </select>
+              </label>
+              <label class="whisper-input">
+                <span>想说什么</span>
+                <textarea id="whisperMessage" name="message" maxlength="160" placeholder="比如：今天也很想你……" required></textarea>
+              </label>
+              <div class="whisper-submit">
+                <small><b id="whisperCount">0</b> / 160</small>
+                <button type="submit"><span>把这句话变成星星</span><i>✦</i></button>
+              </div>
+            </form>
+            <div class="whisper-list" id="whisperList" aria-live="polite">
+              <p class="whisper-empty">第一句话，还在等我们写下。</p>
+            </div>
+          </article>
+
+          <article class="capsule-module constellation-card">
+            <div class="module-label"><span>03</span><b>还没有发生的回忆</b></div>
+            <div class="capsule-track">
+              <div class="capsule-item capsule-item--warm">
+                <span>NEXT HUG</span>
+                <h3>下一次见面</h3>
+                <p>先什么都别说，让我抱够了再慢慢告诉你有多想你。</p>
+                <i aria-hidden="true">01</i>
+              </div>
+              <div class="capsule-item capsule-item--blue">
+                <span>ONE NIGHT</span>
+                <h3>一起看星星</h3>
+                <p>找一个真正安静的地方，躺到很晚，把愿望说给彼此听。</p>
+                <i aria-hidden="true">02</i>
+              </div>
+              <div class="capsule-item capsule-item--rose">
+                <span>SOMEDAY</span>
+                <h3>我们的家</h3>
+                <p>不用很大，有两个人的杯子、拖鞋，还有每天都能见到的你。</p>
+                <i aria-hidden="true">03</i>
+              </div>
+            </div>
+          </article>
+
+          <article class="question-module constellation-card">
+            <div class="module-label"><span>04</span><b>今晚只问彼此一件事</b></div>
+            <blockquote id="nightQuestion">“最近哪一个瞬间，让你特别想抱抱我？”</blockquote>
+            <button class="question-shuffle" id="questionShuffle" type="button">
+              换一个更靠近彼此的问题 <span>↻</span>
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="view view--memories"
+        id="memories"
+        data-view="memories"
+        aria-labelledby="memoriesTitle"
+      >
+        <div class="memories-heading">
+          <p class="eyebrow">The two of us</p>
+          <h2 id="memoriesTitle">我舍不得忘记的我们</h2>
+          <p>这里不只收着纪念日。你笑的样子、靠着我的时候，还有我们一起浪费掉的时间，我都想记住。</p>
+        </div>
+        <div class="memory-stats" aria-label="我们的时间">
+          <article>
+            <span>在一起</span>
+            <strong><b data-day-count>1</b> 天</strong>
+            <p>还想继续往后数</p>
+          </article>
+          <article>
+            <span>一起经过</span>
+            <strong><b data-season-count>1</b> 个季节</strong>
+            <p>每一个都和以前不一样</p>
+          </article>
+          <article>
+            <span>已经点亮</span>
+            <strong><b data-memory-count>5</b> 段回忆</strong>
+            <p>以后会越来越多</p>
+          </article>
+        </div>
+        <div class="memory-rail" id="memoryRail"></div>
+        <div class="everyday-notes" aria-labelledby="everydayTitle">
+          <div class="everyday-notes__heading">
+            <p class="eyebrow">Little things I love</p>
+            <h3 id="everydayTitle">我喜欢的，都是很小的事</h3>
+          </div>
+          <div class="everyday-notes__grid">
+            <article>
+              <span>01</span>
+              <p>喜欢你累了就靠过来，好像我的肩膀本来就是给你留的。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <p>喜欢和你待在一起时不用找话题，安静也不会觉得尴尬。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <p>喜欢你叫我名字的语气，也喜欢每次见面时忍不住靠近你。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="view view--letter"
+        id="letter"
+        data-view="letter"
+        aria-labelledby="letterTitle"
+      >
+        <div class="letter-heading">
+          <p class="eyebrow">A private letter</p>
+          <h2 id="letterTitle">有些话，反正只给你看</h2>
+          <p>不用写得像一封正式的情书。这里只有我们两个，我就直接说了。</p>
+        </div>
+
+        <div class="letter-layout">
+          <article class="love-letter">
+            <div class="love-letter__meta">
+              <span>TO：我最想抱住的人</span>
+              <span id="letterDate"></span>
+            </div>
+            <h3>我是真的很喜欢你。</h3>
+            <p>
+              不是只喜欢那些特别浪漫的时刻。我也喜欢你困了、累了、偶尔闹脾气的样子，
+              喜欢你靠在我肩上以后，整个人慢慢放松下来的感觉。
+            </p>
+            <p>
+              我们当然不会每天都完美。有时会不开心，会说错话，也会有不知道该怎么表达的时候。
+              但我还是想站在你这边，想和你好好说话，想抱着你把那些别扭慢慢解开。
+            </p>
+            <p>
+              以后还有很多普通日子。想和你一起吃饭、散步、看电影、发呆，
+              想让“下次见”慢慢变成“每天见”。
+            </p>
+            <footer>
+              <span>一直喜欢你的人</span>
+              <strong>Zhennan</strong>
+            </footer>
+          </article>
+
+          <div class="letter-side">
+            <article class="promise-card">
+              <p class="eyebrow">Things I want with you</p>
+              <h3>还想和你做很多事</h3>
+              <ul>
+                <li><span>✓</span> 找一个晚上，什么都不做，只抱着你</li>
+                <li><span>○</span> 一起去看真正没有灯光的星空</li>
+                <li><span>○</span> 把想去的地方一站一站走完</li>
+                <li><span>○</span> 拍很多自然又不完美的合照</li>
+                <li><span>○</span> 一起拥有属于我们的家</li>
+              </ul>
+            </article>
+            <article class="next-date-card">
+              <span>距离下一次周年</span>
+              <strong><b data-next-anniversary>1</b> 天</strong>
+              <p>到那天，这里会再亮起一片新的星光。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <nav class="view-nav" aria-label="星夜导航">
+        <button class="view-nav__button is-active" type="button" data-target="tonight" aria-current="page">
+          <span aria-hidden="true">✦</span>
+          <span>今夜</span>
+        </button>
+        <button class="view-nav__button" type="button" data-target="map">
+          <span aria-hidden="true">⌁</span>
+          <span>星图</span>
+        </button>
+        <button class="view-nav__button" type="button" data-target="memories">
+          <span aria-hidden="true">□</span>
+          <span>我们</span>
+        </button>
+        <button class="view-nav__button" type="button" data-target="pulse">
+          <span aria-hidden="true">◌</span>
+          <span>此刻</span>
+        </button>
+        <button class="view-nav__button" type="button" data-target="letter">
+          <span aria-hidden="true">♡</span>
+          <span>给你</span>
+        </button>
+      </nav>
     </main>
 
-    <script src="data/stars.js"></script>
-    <script src="script.js"></script>
+    <aside class="memory-sheet" id="memorySheet" aria-hidden="true" aria-labelledby="memoryTitle">
+      <button class="memory-sheet__backdrop" id="memoryBackdrop" type="button" aria-label="关闭回忆"></button>
+      <article class="memory-card" role="dialog" aria-modal="true">
+        <header class="memory-card__header">
+          <div>
+          <p id="memoryKind">Only for you</p>
+            <span id="memoryIndex">001 / 001</span>
+          </div>
+          <button class="close-button" id="closeMemoryButton" type="button" aria-label="关闭回忆">×</button>
+        </header>
+        <div class="memory-card__glow" aria-hidden="true"><span>✦</span></div>
+        <div class="memory-card__body">
+          <p class="memory-card__day" id="memoryDay">第 1 天</p>
+          <h2 id="memoryTitle">我们从这里开始</h2>
+          <p id="memoryMessage">从这一天起，我的以后里开始有了你。</p>
+          <time id="memoryDate" datetime="2024-09-09">2024 年 9 月 9 日</time>
+        </div>
+        <footer class="memory-card__footer">
+          <button id="previousMemoryButton" type="button">← 上一颗</button>
+          <button id="nextMemoryButton" type="button">下一颗 →</button>
+        </footer>
+      </article>
+    </aside>
+
+    <div class="performance-note" id="performanceNote" role="status" aria-live="polite"></div>
+
+    <script src="data/stars.js?v=20260713-2"></script>
+    <script src="script.js?v=20260713-8"></script>
   </body>
 </html>
